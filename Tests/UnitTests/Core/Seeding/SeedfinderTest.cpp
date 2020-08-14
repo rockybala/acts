@@ -24,7 +24,7 @@
 #include <boost/type_erasure/any_cast.hpp>
 
 #include "ATLASCuts.hpp"
-#include "SpacePoint.hpp"
+#include "Acts/Seeding/SpacePoint.hpp"
 
 std::vector<const SpacePoint*> readFile(std::string filename) {
   std::string line;
