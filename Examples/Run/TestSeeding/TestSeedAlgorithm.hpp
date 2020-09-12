@@ -9,8 +9,15 @@
 #pragma once
 
 #include "ACTFW/EventData/GeometryContainers.hpp"
+#include "ACTFW/EventData/IndexContainers.hpp"
 #include "ACTFW/Framework/BareAlgorithm.hpp"
 #include "Acts/Plugins/Digitization/PlanarModuleCluster.hpp"
+#include "Acts/Seeding/InternalSeed.hpp"
+#include "Acts/Seeding/InternalSpacePoint.hpp"
+#include "Acts/Seeding/SpacePoint.hpp"
+#include "ActsFatras/EventData/Barcode.hpp"
+
+#include <set>
 
 namespace FW {
 
@@ -27,9 +34,13 @@ class TestSeedAlgorithm : public FW::BareAlgorithm {
     std::string inputHitParticlesMap;
     /// Which simulated (truth) hits collection to use. Not used currently.
     std::string inputSimulatedHits;
+    // Output proto seeds collection
+    std::string outputProtoSeeds;
   };
 
   TestSeedAlgorithm(const Config& cfg, Acts::Logging::Level level);
+
+  std::vector<const SpacePoint*> readSP(const FW::GeometryIdMultimap<Acts::PlanarModuleCluster>& clusters, const FW::IndexMultimap<ActsFatras::Barcode>& hitParticlesMap, const AlgorithmContext& ctx) const;
 
   /// The framework execut mehtod
   /// @param ctx The Algorithm context for multithreading

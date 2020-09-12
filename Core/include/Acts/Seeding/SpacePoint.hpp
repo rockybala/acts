@@ -8,7 +8,10 @@
 
 #pragma once
 
+#include "ActsFatras/EventData/Barcode.hpp"
+
 struct SpacePoint {
+  size_t hit_id;
   float m_x;
   float m_y;
   float m_z;
@@ -16,16 +19,15 @@ struct SpacePoint {
   int surface;
   float varianceR;
   float varianceZ;
+  std::vector<ActsFatras::Barcode> particles;
   float x() const { return m_x; }
   float y() const { return m_y; }
   float z() const { return m_z; }
   float r() const { return m_r; }
 };
 
-bool operator==(SpacePoint a, SpacePoint b) {
-  if (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
-      a.surface == b.surface && a.varianceR == b.varianceR &&
-      a.varianceZ == b.varianceZ) {
+inline bool operator==(SpacePoint a, SpacePoint b) {
+  if (a.hit_id == b.hit_id && a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z && a.surface == b.surface && a.varianceR == b.varianceR && a.varianceZ == b.varianceZ) {
     return true;
   } else {
     return false;

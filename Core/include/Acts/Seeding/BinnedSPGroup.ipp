@@ -70,6 +70,7 @@ Acts::BinnedSPGroup<external_spacepoint_t>::BinnedSPGroup(
     }
     rBins[rIndex].push_back(std::move(isp));
   }
+ 
   // fill rbins into grid such that each grid bin is sorted in r
   // space points with delta r < rbin size can be out of order
   for (auto& rbin : rBins) {

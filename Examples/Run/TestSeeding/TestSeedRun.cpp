@@ -6,24 +6,28 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cstdlib>
-#include <memory>
-
 #include "ACTFW/Framework/Sequencer.hpp"
 #include "ACTFW/Framework/WhiteBoard.hpp"
 #include "ACTFW/GenericDetector/GenericDetector.hpp"
 #include "ACTFW/Geometry/CommonGeometry.hpp"
-#include "ACTFW/Plugins/BField/BFieldOptions.hpp"
 #include "ACTFW/Io/Csv/CsvOptionsReader.hpp"
+#include "ACTFW/Io/Csv/CsvOptionsWriter.hpp"
 #include "ACTFW/Io/Csv/CsvParticleReader.hpp"
 #include "ACTFW/Io/Csv/CsvPlanarClusterReader.hpp"
-#include "ACTFW/Io/Csv/CsvOptionsWriter.hpp"
 #include "ACTFW/Io/Csv/CsvPlanarClusterWriter.hpp"
+#include "ACTFW/Io/Performance/TrackFinderPerformanceWriter.hpp"
 #include "ACTFW/Options/CommonOptions.hpp"
-#include "TestSeedAlgorithm.hpp"
+#include "ACTFW/Plugins/BField/BFieldOptions.hpp"
+#include "ACTFW/TruthTracking/TruthSeedSelector.hpp"
+#include "ACTFW/TruthTracking/TruthTrackFinder.hpp"
 #include "ACTFW/Utilities/Options.hpp"
 #include "ACTFW/Utilities/Paths.hpp"
 #include <Acts/Utilities/Units.hpp>
+
+#include <cstdlib>
+#include <memory>
+
+#include "TestSeedAlgorithm.hpp"
 
 using namespace FW;
 
@@ -85,11 +89,11 @@ int main(int argc, char* argv[]) {
       std::make_shared<CsvPlanarClusterReader>(clusterReaderCfg, logLevel));
 
   //Write clusters to CSV files
-  auto clusterWriterCfg = Options::readCsvPlanarClusterWriterConfig(vm);
-  clusterWriterCfg.inputClusters = "clusters";
-  clusterWriterCfg.inputSimulatedHits = "hits";
-  sequencer.addWriter(
-      std::make_shared<CsvPlanarClusterWriter>(clusterWriterCfg, logLevel));
+  //auto clusterWriterCfg = Options::readCsvPlanarClusterWriterConfig(vm);
+  //clusterWriterCfg.inputClusters = "clusters";
+  //clusterWriterCfg.inputSimulatedHits = "hits";
+  //sequencer.addWriter(
+  //   std::make_shared<CsvPlanarClusterWriter>(clusterWriterCfg, logLevel));
 
   // add Seeding Algorithm that finds the seeds
   FW::TestSeedAlgorithm::Config testSeedCfg;
@@ -97,8 +101,19 @@ int main(int argc, char* argv[]) {
   testSeedCfg.inputHitIds = "hit_ids";
   testSeedCfg.inputHitParticlesMap = "hit_particles_map";
   testSeedCfg.inputSimulatedHits = "hits";
+  testSeedCfg.outputProtoSeeds = "protoseeds";
   sequencer.addAlgorithm(
       std::make_shared<FW::TestSeedAlgorithm>(testSeedCfg, logLevel));
+
+  const auto& inputParticles = particleReader.outputParticles;
+  // write reconstruction performance data
+  TrackFinderPerformanceWriter::Config perfFinder;
+  perfFinder.inputParticles = inputParticles;
+  perfFinder.inputHitParticlesMap = clusterReaderCfg.outputHitParticlesMap;
+  perfFinder.inputProtoTracks = testSeedCfg.outputProtoSeeds;
+  perfFinder.outputDir = outputDir;
+  sequencer.addWriter(
+      std::make_shared<TrackFinderPerformanceWriter>(perfFinder, logLevel));
 
   // Run all configured algorithms and return the appropriate status.
   return sequencer.run();

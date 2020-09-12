@@ -14,6 +14,7 @@
 #include "Acts/Seeding/SeedFilter.hpp"
 #include "Acts/Seeding/Seedfinder.hpp"
 #include "Acts/Seeding/SpacePointGrid.hpp"
+#include "ActsFatras/EventData/Barcode.hpp"
 
 #include <chrono>
 #include <fstream>

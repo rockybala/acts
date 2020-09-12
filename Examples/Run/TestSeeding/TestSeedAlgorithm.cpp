@@ -8,14 +8,6 @@
 
 #include "TestSeedAlgorithm.hpp"
 
-#include <boost/type_erasure/any_cast.hpp>
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <utility>
-
 #include "ACTFW/EventData/IndexContainers.hpp"
 #include "ACTFW/EventData/SimHit.hpp"
 #include "ACTFW/EventData/SimIdentifier.hpp"
@@ -23,6 +15,7 @@
 #include "ACTFW/EventData/SimVertex.hpp"
 #include "ACTFW/Framework/WhiteBoard.hpp"
 #include "ACTFW/Io/Csv/CsvPlanarClusterReader.hpp"
+#include "ACTFW/Validation/ProtoTrackClassification.hpp"
 #include "Acts/Plugins/Digitization/PlanarModuleCluster.hpp"
 #include "Acts/Seeding/BinFinder.hpp"
 #include "Acts/Seeding/BinnedSPGroup.hpp"
@@ -35,8 +28,22 @@
 #include "Acts/Seeding/SpacePointGrid.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/Utilities/Units.hpp"
+#include "ActsFatras/EventData/Barcode.hpp"
+#include "ACTFW/EventData/ProtoTrack.hpp"
 
 #include "ATLASCuts.hpp"
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+#include <utility>
+
+#include <boost/type_erasure/any_cast.hpp>
+
+using HitParticlesMap = FW::IndexMultimap<ActsFatras::Barcode>;
 
 FW::TestSeedAlgorithm::TestSeedAlgorithm(
     const FW::TestSeedAlgorithm::Config& cfg, Acts::Logging::Level level)
@@ -47,7 +54,57 @@ FW::TestSeedAlgorithm::TestSeedAlgorithm(
     throw std::invalid_argument(
 	"Missing clusters input collection with the hits");
   }
+
+  if (m_cfg.inputHitParticlesMap.empty()) {
+    throw std::invalid_argument("Missing hit-particles map input collection");
+  }
+  if(m_cfg.outputProtoSeeds.empty()) {
+    throw std::invalid_argument("Missing output proto seeds collection");
+  }
 }
+
+std::vector<const SpacePoint*> FW::TestSeedAlgorithm::readSP(const FW::GeometryIdMultimap<Acts::PlanarModuleCluster>& clusters, const HitParticlesMap& hitParticlesMap, const AlgorithmContext& ctx) const {
+
+  std::vector<const SpacePoint*> spVec;
+  spVec.clear();
+  
+  std::size_t hit_id = 0;
+  for (const auto& entry : clusters) {
+    Acts::GeometryID geoId = entry.first;
+    const Acts::PlanarModuleCluster& cluster = entry.second;
+    const auto& parameters = cluster.parameters();
+    Acts::Vector2D localPos(parameters[0], parameters[1]);
+    Acts::Vector3D globalFakeMom(1, 1, 1);
+    Acts::Vector3D globalPos(0, 0, 0);
+    // transform local into global position information 
+    cluster.referenceObject().localToGlobal(ctx.geoContext, localPos,
+					    globalFakeMom, globalPos);
+    float x, y, z, r, varianceR, varianceZ;
+    x = globalPos.x();
+    y = globalPos.y();
+    z = globalPos.z();
+    r = std::sqrt(x * x + y * y);
+    varianceR = 0;  // initialized to 0 becuse they don't affect seeds generated
+    varianceZ = 0;  // initialized to 0 becuse they don't affect seeds generated
+
+    //get truth particles that are a part of this space point
+    std::vector<ActsFatras::Barcode> particles;
+    for (auto hitParticle : makeRange(hitParticlesMap.equal_range(hit_id))) {
+      auto particleId = hitParticle.second;
+      particles.push_back(particleId);
+    }
+
+    SpacePoint* sp = new SpacePoint{
+      hit_id, x, y, z, r, geoId.layer(), varianceR, varianceZ, particles};
+    spVec.push_back(sp);
+
+    ++hit_id;
+  }
+
+  return spVec;
+
+}
+
 
 FW::ProcessCode FW::TestSeedAlgorithm::execute(
 					 const AlgorithmContext& ctx) const {
@@ -57,43 +114,17 @@ FW::ProcessCode FW::TestSeedAlgorithm::execute(
       ctx.eventStore.get<FW::GeometryIdMultimap<Acts::PlanarModuleCluster>>(
           m_cfg.inputClusters);
 
+  // read in the map of hitId to particleId truth information
+  const HitParticlesMap hitParticlesMap =
+      ctx.eventStore.get<HitParticlesMap>(m_cfg.inputHitParticlesMap);
+
   // create the space points
-  std::size_t clustCounter = 0;
-  std::vector<const SpacePoint*> spVec;
-  spVec.clear();
-  for (const auto& entry : clusters) {
-    Acts::GeometryID geoId = entry.first;
-    //std::cout << "GeoID = " << geoId << std::endl;
-    const Acts::PlanarModuleCluster& cluster = entry.second;
-    const auto& parameters = cluster.parameters();
-    Acts::Vector2D localPos(parameters[0], parameters[1]);
-    Acts::Vector3D globalFakeMom(1, 1, 1);
-    Acts::Vector3D globalPos(0, 0, 0);
-    // transform local into global position information
-    cluster.referenceObject().localToGlobal(ctx.geoContext, localPos,
-                                            globalFakeMom, globalPos);
-    float x, y, z, r, varianceR, varianceZ;
-    SpacePoint* sp;
-    if(geoId.volume() == 7 || geoId.volume() ==8 || geoId.volume() == 9){
-      x = globalPos.x();
-      y = globalPos.y();
-      z = globalPos.z();
-      r = std::sqrt(x * x + y * y);
-      varianceR = 0;  // initialized to 0 becuse they don't affect seeds generated
-      varianceZ = 0;  // initialized to 0 becuse they don't affect seeds generated
+  std::size_t clustCounter = clusters.size();
 
-      sp = new SpacePoint{x, y, z, r, geoId.layer(), varianceR, varianceZ};
-      spVec.push_back(sp);
-    }
+  std::vector<const SpacePoint*> spVec = readSP(clusters, hitParticlesMap, ctx);
 
-    clustCounter++;
-    
-    //std::cout << "geo id layer = " << geoId.layer() << std::endl;
-
-  }
-
-  std::cout << "SP vec size = " << spVec.size() << std::endl;
-  std::cout << "cluster count = " << clustCounter << std::endl;
+  std::cout << "SP vector size = " << spVec.size() << std::endl;
+  std::cout << "Total number of Clusters = " << clustCounter << std::endl;
 
   Acts::SeedfinderConfig<SpacePoint> config;
   // silicon detector max
@@ -168,5 +199,24 @@ FW::ProcessCode FW::TestSeedAlgorithm::execute(
   std::cout << "Number of seeds generated: " << numSeeds << std::endl;
   ACTS_INFO("Number of clusters (hits) used is: " << clustCounter)
 
+  FW::ProtoTrackContainer SeedContainer;
+  SeedContainer.reserve(numSeeds);
+
+  for(auto& seedVec : seedVector) {
+    for(auto& seed : seedVec){
+
+      FW::ProtoTrack ProtoSeed;
+      ProtoSeed.reserve(3);
+
+      ProtoSeed.emplace_back(seed.sp()[0]->hit_id);
+      ProtoSeed.emplace_back(seed.sp()[1]->hit_id);
+      ProtoSeed.emplace_back(seed.sp()[2]->hit_id);
+
+      SeedContainer.emplace_back(std::move(ProtoSeed));
+
+    }
+  }
+
+  ctx.eventStore.add(m_cfg.outputProtoSeeds, std::move(SeedContainer));
   return FW::ProcessCode::SUCCESS;
 }
