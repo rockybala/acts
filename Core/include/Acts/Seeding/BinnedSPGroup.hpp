@@ -224,7 +224,7 @@ class BinnedSPGroupIterator {
   size_t phiIndex = 1;
   size_t zIndex = 1;
   size_t outputIndex = 0;
-  std::array<long unsigned int, 2ul> phiZbins;
+  std::array<long unsigned int, 2ul> phiZbins; //array[nlocal phibins, nlocal zbins]
   BinFinder<external_spacepoint_t>* m_bottomBinFinder;
   BinFinder<external_spacepoint_t>* m_topBinFinder;
 };
