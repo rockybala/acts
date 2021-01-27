@@ -21,12 +21,19 @@
 #include <Acts/Geometry/TrackingGeometry.hpp>
 
 #include <memory>
+#include <chrono>
+#include <iostream>
 
 #include <boost/program_options.hpp>
+
+typedef std::chrono::high_resolution_clock Time;
+typedef std::chrono::duration<float> ftime;
 
 int seedingExample(int argc, char* argv[],
                    ActsExamples::IBaseDetector& detector) {
   // Setup and parse options
+
+  //auto now1 = Time::now();
 
   auto desc = ActsExamples::Options::makeDefaultOptions();
   ActsExamples::Options::addSequencerOptions(desc);
@@ -46,6 +53,7 @@ int seedingExample(int argc, char* argv[],
 
   // Now read the standard options
   auto logLevel = ActsExamples::Options::readLogLevel(vm);
+  auto outputDir = ActsExamples::ensureWritableDirectory(vm["output-dir"].as<std::string>());
 
   // The geometry, material and decoration
   auto geometry = ActsExamples::Geometry::build(vm, detector);
@@ -56,14 +64,24 @@ int seedingExample(int argc, char* argv[],
     sequencer.addContextDecorator(cdr);
   }
 
+  //auto now2 = Time::now();
+  //ftime diff = now2 - now1;
+  //std::cout << "Time taken before particle reader = " << diff.count() << std::endl;
+
   // Read particles (initial states) and clusters from CSV files
+  //auto pr_now1 = Time::now();
   auto particleReader = ActsExamples::Options::readCsvParticleReaderConfig(vm);
   particleReader.inputStem = "particles_initial";
   particleReader.outputParticles = "particles_initial";
   sequencer.addReader(std::make_shared<ActsExamples::CsvParticleReader>(
       particleReader, logLevel));
+  //auto pr_now2 = Time::now();
+  //ftime pr_time = pr_now2 - pr_now1;
+  //std::cout << "Time taken by ParticleReader = " << pr_time.count() << std::endl;
+ 
 
   // Read clusters from CSV files
+  //auto cr_now1 = Time::now();
   auto clusterReaderCfg =
       ActsExamples::Options::readCsvPlanarClusterReaderConfig(vm);
   clusterReaderCfg.trackingGeometry = tGeometry;
@@ -73,8 +91,13 @@ int seedingExample(int argc, char* argv[],
   clusterReaderCfg.outputSimHits = "hits";
   sequencer.addReader(std::make_shared<ActsExamples::CsvPlanarClusterReader>(
       clusterReaderCfg, logLevel));
+  //auto cr_now2 = Time::now();
+  //ftime cr_time = cr_now2 - cr_now1;
+  //std::cout << "Time taken by ClusterReader = " << cr_time.count() << std::endl;
+
 
   // Seeding algorithm
+  //auto sa_now1 = Time::now();
   ActsExamples::SeedingAlgorithm::Config seeding;
   seeding.outputSeeds = "seeds";
   seeding.outputProtoTracks = "protoTracks";
@@ -83,8 +106,12 @@ int seedingExample(int argc, char* argv[],
   seeding.inputParticles = particleReader.outputParticles;
   sequencer.addAlgorithm(
       std::make_shared<ActsExamples::SeedingAlgorithm>(seeding, logLevel));
+  //auto sa_now2 = Time::now();
+  //ftime sa_time = sa_now2 - sa_now1;
+  //std::cout << "Time taken by SeedingAlgorithm = " << sa_time.count() << std::endl;
 
   // Performance Writer
+  //auto sp_now1 = Time::now();
   ActsExamples::SeedingPerformanceWriter::Config seedPerfCfg;
   // seedPerfCfg.inputSeeds = seeding.outputSeeds;
   seedPerfCfg.inputSeeds = "seeds";
@@ -92,9 +119,24 @@ int seedingExample(int argc, char* argv[],
   seedPerfCfg.inputParticles = particleReader.outputParticles;
   seedPerfCfg.inputClusters = clusterReaderCfg.outputClusters;
   seedPerfCfg.inputHitParticlesMap = clusterReaderCfg.outputMeasurementParticlesMap;
-  seedPerfCfg.outputFilename = "performance.root";
+  seedPerfCfg.outputDir = outputDir;
+  seedPerfCfg.outputFilename = "performance_track_seeding.root";
   sequencer.addWriter(std::make_shared<ActsExamples::SeedingPerformanceWriter>(
       seedPerfCfg, logLevel));
+  //auto sp_now2 = Time::now();
+  //ftime sp_time = sp_now2 - sp_now1;
+  //std::cout << "Time taken by SeedingPerformanceWriter = " << sp_time.count() << std::endl;
+
+  //auto seq_now1 = Time::now();
+
+  //int out = sequencer.run();
 
   return sequencer.run();
+
+  //auto seq_now2 = Time::now();
+  //ftime seq_time = seq_now2 - seq_now1;
+
+  //std::cout << "time taken along with sequencer = " << seq_time.count() << std::endl;
+
+  //return out;
 }

@@ -11,6 +11,7 @@
 #include <cmath>
 #include <numeric>
 #include <type_traits>
+#include <iostream>
 
 namespace Acts {
 
@@ -38,19 +39,67 @@ template <typename external_spacepoint_t, typename platform_t>
 template <typename sp_range_t>
 std::vector<Seed<external_spacepoint_t>>
 Seedfinder<external_spacepoint_t, platform_t>::createSeedsForGroup(
-    sp_range_t bottomSPs, sp_range_t middleSPs, sp_range_t topSPs) const {
+    sp_range_t bottomSPs, sp_range_t middleSPs, sp_range_t topSPs, bool useLayerLink) const {
   std::vector<Seed<external_spacepoint_t>> outputVec;
+
+  //get pixel layer links 
+  std::vector<Acts::LayerLink> pxlLinks = pixelLinks();
+
+  int m_count = 0;
+
+  int b_totalCount = 0;
+  int t_totalCount = 0;
+
   for (auto spM : middleSPs) {
+
+    m_count++;
+
+    std::cout << "for middle SP = " << m_count << std::endl;
+
     float rM = spM->radius();
     float zM = spM->z();
     float varianceRM = spM->varianceR();
     float varianceZM = spM->varianceZ();
 
+    const external_spacepoint_t& mid_sp = spM->sp();
+    const Acts::GeometryIdentifier mid_geoId = mid_sp.m_geoId;
+    unsigned int key = 1000 * mid_geoId.volume() + mid_geoId.layer();
+
+    std::cout << " Inside Seedfinder.ipp:: For SPM = " << rM << ", " << zM << std::endl; 
+    //std::cout << "Key = " << key << std::endl;
+
+    std::vector<unsigned int> bottom_top_keys;
+    bottom_top_keys.clear();
+  
+    for(std::vector<Acts::LayerLink>::const_iterator it=pxlLinks.begin(); it!=pxlLinks.end(); ++it){
+
+      if(key == (*it).m_src) bottom_top_keys.push_back((*it).m_dst);
+      if(key == (*it).m_dst) bottom_top_keys.push_back((*it).m_src);
+    }
+
     // bottom space point
     std::vector<const InternalSpacePoint<external_spacepoint_t>*>
         compatBottomSP;
 
+    int b_count = 0;
+
     for (auto bottomSP : bottomSPs) {
+
+      const external_spacepoint_t& bot_sp = bottomSP->sp();
+      const Acts::GeometryIdentifier bot_geoId = bot_sp.m_geoId;
+      unsigned int bot_key = 1000 * bot_geoId.volume() + bot_geoId.layer();
+
+      //std::cout << "Bottom keys = " << bot_key << std::endl;
+
+      std::vector<unsigned int>::iterator bot_found = std::find(bottom_top_keys.begin(), bottom_top_keys.end(), bot_key);
+
+      if(bot_found == bottom_top_keys.end() && useLayerLink) continue;
+
+      //std::cout << "Bottom keys retained = " << bot_key << std::endl;
+
+      b_count++;
+      b_totalCount++;
+
       float rB = bottomSP->radius();
       float deltaR = rM - rB;
       // if r-distance is too big, try next SP in bin
@@ -72,8 +121,11 @@ Seedfinder<external_spacepoint_t, platform_t>::createSeedsForGroup(
           zOrigin > m_config.collisionRegionMax) {
         continue;
       }
+
+
       compatBottomSP.push_back(bottomSP);
     }
+
     // no bottom SP found -> try next spM
     if (compatBottomSP.empty()) {
       continue;
@@ -82,6 +134,15 @@ Seedfinder<external_spacepoint_t, platform_t>::createSeedsForGroup(
     std::vector<const InternalSpacePoint<external_spacepoint_t>*> compatTopSP;
 
     for (auto topSP : topSPs) {
+
+      const external_spacepoint_t& top_sp = topSP->sp();
+      const Acts::GeometryIdentifier top_geoId = top_sp.m_geoId;
+      unsigned int top_key = 1000 * top_geoId.volume() + top_geoId.layer();
+
+      std::vector<unsigned int>::iterator top_found = std::find(bottom_top_keys.begin(), bottom_top_keys.end(), top_key);
+
+      if(top_found == bottom_top_keys.end() && useLayerLink) continue;
+
       float rT = topSP->radius();
       float deltaR = rT - rM;
       // this condition is the opposite of the condition for bottom SP
@@ -101,11 +162,15 @@ Seedfinder<external_spacepoint_t, platform_t>::createSeedsForGroup(
           zOrigin > m_config.collisionRegionMax) {
         continue;
       }
+
       compatTopSP.push_back(topSP);
     }
+
     if (compatTopSP.empty()) {
       continue;
     }
+
+
     // contains parameters required to calculate circle with linear equation
     // ...for bottom-middle
     std::vector<LinCircle> linCircleBottom;
@@ -242,7 +307,33 @@ Seedfinder<external_spacepoint_t, platform_t>::createSeedsForGroup(
     }
     m_config.seedFilter->filterSeeds_1SpFixed(seedsPerSpM, outputVec);
   }
+
+  std::cout << "So in this bin:::::: " << std::endl;
+  std::cout << "No. of Middle SPs = " << m_count << std::endl;
+  std::cout << "No. of Bottom SPs = " << b_totalCount << std::endl;
+  std::cout << "No. of top SPs = " << t_totalCount << std::endl;
+
   return outputVec;
+}
+
+template <typename external_spacepoint_t, typename platform_t>
+std::vector<Acts::LayerLink> Seedfinder<external_spacepoint_t, platform_t>::pixelLinks() const {
+
+  std::ifstream linkFile("/gpfs/slac/atlas/fs1/d/rbgarg/ACTS-Project/acts/Core/include/Acts/Seeding/LayerConnections.bin", std::ios::binary);
+
+  Acts::LayerLinker* ll = new LayerLinker(linkFile);
+  std::vector<Acts::LayerLink>& linklist = ll->m_links;
+
+  std::vector<Acts::LayerLink> pxlLnks;
+
+  for(std::vector<Acts::LayerLink>::const_iterator it=linklist.begin(); it!=linklist.end(); ++it){
+
+    if((*it).m_src >= 12000 || (*it).m_dst >= 12000) continue;
+    pxlLnks.push_back(*it);
+
+  }
+  return pxlLnks;
+
 }
 
 template <typename external_spacepoint_t, typename platform_t>

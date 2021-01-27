@@ -8,11 +8,14 @@
 
 #pragma once
 
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 struct SpacePoint {
+  size_t m_Id;
   float m_x;
   float m_y;
   float m_z;
   float m_r;
+  Acts::GeometryIdentifier m_geoId;
   int surface;
   float varianceR;
   float varianceZ;

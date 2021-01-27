@@ -11,6 +11,8 @@
 #include "Acts/Seeding/InternalSeed.hpp"
 #include "Acts/Seeding/InternalSpacePoint.hpp"
 #include "Acts/Seeding/SeedfinderConfig.hpp"
+#include "Acts/Seeding/LayerLinker.hpp"
+#include "Acts/Geometry/GeometryIdentifier.hpp"
 
 #include <array>
 #include <list>
@@ -59,7 +61,11 @@ class Seedfinder {
   /// @return vector in which all found seeds for this group are stored.
   template <typename sp_range_t>
   std::vector<Seed<external_spacepoint_t>> createSeedsForGroup(
-      sp_range_t bottomSPs, sp_range_t middleSPs, sp_range_t topSPs) const;
+      sp_range_t bottomSPs, sp_range_t middleSPs, sp_range_t topSPs, bool useLayerLink) const;
+
+  //Link layers as per the probability.
+  //@return vector in which pair of connected layers are stored.
+  std::vector<Acts::LayerLink> pixelLinks() const;
 
  private:
   void transformCoordinates(

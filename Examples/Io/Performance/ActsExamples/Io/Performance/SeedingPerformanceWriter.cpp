@@ -10,11 +10,18 @@
 #include "Acts/EventData/MultiTrajectoryHelpers.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
 #include "ActsExamples/Utilities/Paths.hpp"
+#include "ActsExamples/Utilities/Range.hpp"
+#include "ActsFatras/EventData/Barcode.hpp"
+#include "ActsExamples/EventData/Index.hpp"
 
 #include <numeric>
 #include <set>
 #include <stdexcept>
 #include <TFile.h>
+
+namespace{
+  using HitParticlesMap = ActsExamples::IndexMultimap<ActsFatras::Barcode>;
+} //namespace
 
 ActsExamples::SeedingPerformanceWriter::SeedingPerformanceWriter(
     ActsExamples::SeedingPerformanceWriter::Config cfg,
@@ -40,7 +47,7 @@ ActsExamples::SeedingPerformanceWriter::SeedingPerformanceWriter(
   // the output file can not be given externally since TFile accesses to the
   // same file from multiple threads are unsafe.
   // must always be opened internally
-  auto path = m_cfg.outputFilename;
+  auto path = joinPaths(m_cfg.outputDir, m_cfg.outputFilename);
   m_outputFile = TFile::Open(path.c_str(), "RECREATE");
   if (not m_outputFile) {
     throw std::invalid_argument("Could not open '" + path + "'");
@@ -83,6 +90,7 @@ ActsExamples::SeedingPerformanceWriter::identifySharedParticles(
   const SimSpacePoint* sp0 = seed->sp()[0];
   const SimSpacePoint* sp1 = seed->sp()[1];
   const SimSpacePoint* sp2 = seed->sp()[2];
+
   std::set<ActsFatras::Barcode> particles0;
   std::set<ActsFatras::Barcode> particles1;
   std::set<ActsFatras::Barcode> particles2;
@@ -107,6 +115,10 @@ ActsExamples::SeedingPerformanceWriter::identifySharedParticles(
 ActsExamples::ProcessCode ActsExamples::SeedingPerformanceWriter::writeT(
     const AlgorithmContext& ctx,
     const std::vector<std::vector<Acts::Seed<SimSpacePoint>>>& seedVector) {
+  //get hitParticlesMap
+  const auto& hitParticlesMap = ctx.eventStore.get<HitParticlesMap>(m_cfg.inputHitParticlesMap);
+  // compute the inverse mapping on-the-fly 
+  const auto& particleHitsMap = ActsExamples::invertIndexMultimap(hitParticlesMap);
   // Read truth particles from input collection
   const auto& particles =
       ctx.eventStore.get<ActsExamples::SimParticleContainer>(
@@ -121,7 +133,6 @@ ActsExamples::ProcessCode ActsExamples::SeedingPerformanceWriter::writeT(
     nSeeds += regionVec.size();
     for (size_t i = 0; i < regionVec.size(); i++) {
       const Acts::Seed<SimSpacePoint>* seed = &regionVec[i];
-
       std::set<ActsFatras::Barcode> prtsInCommon =
           identifySharedParticles(seed);
       if (prtsInCommon.size() > 0) {
@@ -154,12 +165,17 @@ ActsExamples::ProcessCode ActsExamples::SeedingPerformanceWriter::writeT(
     m_effPlotTool.fill(m_effPlotCache, particle, isMatched);
   }
 
-  ACTS_INFO("Number of seeds: " << nSeeds);
   m_nTotalSeeds += nSeeds;
   m_nTotalMatchedSeeds += nMatchedSeeds;
   m_nTotalParticles += particles.size();
   m_nTotalMatchedParticles += nMatchedParticles;
   m_nTotalDuplicatedParticles += nDuplicatedParticles;
+
+  ACTS_INFO("Number of seeds: " << m_nTotalSeeds);
+  ACTS_INFO("Number of matched seeds: " << m_nTotalMatchedSeeds);
+  ACTS_INFO("Number of particles: " << m_nTotalParticles);
+  ACTS_INFO("Number of matched particles: " << m_nTotalMatchedParticles);
+  ACTS_INFO("Number of duplicated particles: " << m_nTotalDuplicatedParticles);
 
   return ProcessCode::SUCCESS;
 }

@@ -32,8 +32,17 @@
 #include "ActsExamples/Seeding/SimSpacePoint.hpp"
 #include "ActsExamples/Validation/TrackClassification.hpp"
 
+#include "Acts/Seeding/LayerLinker.hpp"
+
 #include <iostream>
+#include <chrono>
 #include <stdexcept>
+
+#include <TFile.h>
+#include <TH1F.h>
+
+typedef std::chrono::high_resolution_clock Time;
+typedef std::chrono::duration<float> ftime;
 
 using ProtoTrack = ActsExamples::ProtoTrack;
 using SimSpacePoint = ActsExamples::SimSpacePoint;
@@ -106,6 +115,21 @@ SimSpacePoint* ActsExamples::SeedingAlgorithm::transformSP(
 
 ActsExamples::ProcessCode ActsExamples::SeedingAlgorithm::execute(
     const AlgorithmContext& ctx) const {
+
+
+  TFile *file = new TFile("SeedingFile.root", "RECREATE");
+  file->cd();
+
+  TH1F *hb = new TH1F("hb", "No. of compatible bottom sps", 500, 0, 500);
+  hb->GetYaxis()->SetTitle("Entries");  hb->GetYaxis()->CenterTitle();
+  hb->GetXaxis()->SetTitle("nSP"); hb->GetXaxis()->CenterTitle();
+  hb->Sumw2();
+
+  TH1F *ht = new TH1F("ht", "No. of compatible top sps", 500, 0, 500);
+  ht->GetYaxis()->SetTitle("Entries");  ht->GetYaxis()->CenterTitle();
+  ht->GetXaxis()->SetTitle("nSP"); ht->GetXaxis()->CenterTitle();
+  ht->Sumw2();
+
   Acts::SeedfinderConfig<SimSpacePoint> config;
   // silicon detector max
   config.rMax = 200.;
@@ -191,9 +215,94 @@ ActsExamples::ProcessCode ActsExamples::SeedingAlgorithm::execute(
   std::vector<std::vector<Acts::Seed<SimSpacePoint>>> seedVector;
   auto groupIt = spGroup.begin();
   auto endOfGroups = spGroup.end();
+
+  int bin_counter = 0;
+
+  bool useLayerLink = true;
+
   for (; !(groupIt == endOfGroups); ++groupIt) {
+    bin_counter++;
+
+    std::cout << "For bin = " << bin_counter << std::endl;
+
+    std::vector<Acts::LayerLink> pxlLinks = seedFinder.pixelLinks();
+
+    for(auto spM : groupIt.middle()){
+
+      float rM = spM->radius();
+      float zM = spM->z();
+      float varianceRM = spM->varianceR();
+      float varianceZM = spM->varianceZ();
+
+      const SimSpacePoint& mid_sp = spM->sp();
+      const Acts::GeometryIdentifier mid_geoId = mid_sp.m_geoId;
+      unsigned int key = 1000 * mid_geoId.volume() + mid_geoId.layer();
+
+      std::vector<unsigned int> bottom_top_keys;
+      bottom_top_keys.clear();
+
+      for(std::vector<Acts::LayerLink>::const_iterator it=pxlLinks.begin(); it!=pxlLinks.end(); ++it){
+
+	if(key == (*it).m_src) bottom_top_keys.push_back((*it).m_dst);
+	if(key == (*it).m_dst) bottom_top_keys.push_back((*it).m_src);
+      }
+
+      int b_count = 0;
+
+      for (auto bottomSP : groupIt.bottom()) {
+
+	const SimSpacePoint& bot_sp = bottomSP->sp();
+	const Acts::GeometryIdentifier bot_geoId = bot_sp.m_geoId;
+	unsigned int bot_key = 1000 * bot_geoId.volume() + bot_geoId.layer();
+
+	std::vector<unsigned int>::iterator bot_found = std::find(bottom_top_keys.begin(), bottom_top_keys.end(), bot_key);
+
+	if(bot_found == bottom_top_keys.end() && useLayerLink) continue;
+
+	float rB = bottomSP->radius();
+	float deltaR = rM - rB;
+	if (deltaR > config.deltaRMax) { continue; }
+	if(deltaR < config.deltaRMin) { continue; } 
+	float cotTheta = (zM - bottomSP->z()) / deltaR;
+	if (std::fabs(cotTheta) > config.cotThetaMax) { continue; }
+	float zOrigin = zM - rM * cotTheta;
+	if (zOrigin < config.collisionRegionMin || zOrigin > config.collisionRegionMax) { continue; }
+
+	b_count++;
+
+      }
+
+      hb->Fill(b_count);
+
+      int t_count = 0;
+      for (auto topSP : groupIt.top()) {
+
+	const SimSpacePoint& top_sp = topSP->sp();
+	const Acts::GeometryIdentifier top_geoId = top_sp.m_geoId;
+	unsigned int top_key = 1000 * top_geoId.volume() + top_geoId.layer();
+	std::vector<unsigned int>::iterator top_found = std::find(bottom_top_keys.begin(), bottom_top_keys.end(), top_key);
+
+	if(top_found == bottom_top_keys.end() && useLayerLink) continue;
+
+	float rT = topSP->radius();
+	float deltaR = rT - rM;
+	if (deltaR < config.deltaRMin) { continue; }
+	if (deltaR > config.deltaRMax) { continue; }
+
+	float cotTheta = (topSP->z() - zM) / deltaR;
+	if (std::fabs(cotTheta) > config.cotThetaMax) { continue; }
+	float zOrigin = zM - rM * cotTheta;
+	if (zOrigin < config.collisionRegionMin || zOrigin > config.collisionRegionMax) { continue; }
+
+	t_count++;
+
+      }
+
+      ht->Fill(t_count);
+
+    }
     seedVector.push_back(seedFinder.createSeedsForGroup(
-        groupIt.bottom(), groupIt.middle(), groupIt.top()));
+        groupIt.bottom(), groupIt.middle(), groupIt.top(), false));
   }
 
   // SeedContainer seeds;
@@ -217,6 +326,9 @@ ActsExamples::ProcessCode ActsExamples::SeedingAlgorithm::execute(
 
   ctx.eventStore.add(m_cfg.outputSeeds, std::move(seedVector));
   ctx.eventStore.add(m_cfg.outputProtoTracks, std::move(protoTracks));
+
+  file->Write();
+  file->Close();
 
   return ActsExamples::ProcessCode::SUCCESS;
 }

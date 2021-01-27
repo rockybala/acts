@@ -16,6 +16,8 @@
 #include <tuple>
 #include <utility>
 
+#include <iostream>
+
 namespace Acts {
 
 namespace detail {
@@ -124,10 +126,13 @@ class GlobalNeighborHoodIndices {
   // Collect the sequence of indices into an std::vector
   std::vector<size_t> collect() const {
     std::vector<size_t> result;
+
+    std::cout << "size of this = " << this->size() << std::endl;
     result.reserve(this->size());
     for (size_t idx : *this) {
       result.push_back(idx);
     }
+    std::cout << "size of result = " << result.size() << std::endl;
     return result;
   }
 

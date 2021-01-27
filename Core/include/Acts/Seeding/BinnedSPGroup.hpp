@@ -47,7 +47,7 @@ class NeighborhoodIterator {
     m_grid = spgrid;
     m_indices = indices;
     m_curInd = curInd;
-    m_curIt = curIt;
+     m_curIt = curIt;
     if (m_indices.size() > m_curInd) {
       m_binEnd = std::end(spgrid->at(m_indices[m_curInd]));
     }
@@ -224,7 +224,7 @@ class BinnedSPGroupIterator {
   size_t phiIndex = 1;
   size_t zIndex = 1;
   size_t outputIndex = 0;
-  std::array<long unsigned int, 2ul> phiZbins; //array[nlocal phibins, nlocal zbins]
+  std::array<long unsigned int, 2ul> phiZbins; //array[num of phibins, num of zbins]
   BinFinder<external_spacepoint_t>* m_bottomBinFinder;
   BinFinder<external_spacepoint_t>* m_topBinFinder;
 };

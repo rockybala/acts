@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
   auto endOfGroups = spGroup.end();
   for (; !(groupIt == endOfGroups); ++groupIt) {
     seedVector.push_back(a.createSeedsForGroup(
-        groupIt.bottom(), groupIt.middle(), groupIt.top()));
+	groupIt.bottom(), groupIt.middle(), groupIt.top(), false));
   }
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
