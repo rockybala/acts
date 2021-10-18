@@ -31,6 +31,7 @@
 #include "ActsExamples/TrackFinding/SpacePointMakerOptions.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingOptions.hpp"
+#include "ActsExamples/TrackFinding/SeedFindingOptions.hpp"
 #include "ActsExamples/TrackFinding/TrackParamsEstimationAlgorithm.hpp"
 #include "ActsExamples/TrackFitting/TrackFittingOptions.hpp"
 #include "ActsExamples/TruthTracking/TruthSeedSelector.hpp"
@@ -74,6 +75,7 @@ int runRecCKFTracks(int argc, char* argv[],
   Options::addMagneticFieldOptions(desc);
   Options::addFittingOptions(desc);
   Options::addTrackFindingOptions(desc);
+  Options::addSeedFindingOptions(desc);
   addRecCKFOptions(desc);
   Options::addDigitizationOptions(desc);
   Options::addSpacePointMakerOptions(desc);
@@ -95,7 +97,9 @@ int runRecCKFTracks(int argc, char* argv[],
   bool truthSmearedSeeded = vm["ckf-truth-smeared-seeds"].template as<bool>();
   bool truthEstimatedSeeded =
       vm["ckf-truth-estimated-seeds"].template as<bool>();
-
+      
+  cout << truthSmearedSeeded;
+  cout << truthEstimatedSeeded;
   // Setup detector geometry
   auto geometry = Geometry::build(vm, *detector);
   auto trackingGeometry = geometry.first;
@@ -165,6 +169,7 @@ int runRecCKFTracks(int argc, char* argv[],
       inputProtoTracks = trackFinderCfg.outputProtoTracks;
     } else {
       // Seeding algorithm
+      cout << "Running seeding algorithm";
       SeedingAlgorithm::Config seedingCfg;
       seedingCfg.inputSpacePoints = {
           spCfg.outputSpacePoints,
@@ -198,7 +203,9 @@ int runRecCKFTracks(int argc, char* argv[],
       seedingCfg.seedFinderConfig.cotThetaMax =
           seedingCfg.gridConfig.cotThetaMax;
 
+    
       seedingCfg.seedFinderConfig.sigmaScattering = 50;
+      // Why is this 50 
       seedingCfg.seedFinderConfig.radLengthPerSeed = 0.1;
 
       seedingCfg.gridConfig.minPt = 500._MeV;
@@ -218,6 +225,9 @@ int runRecCKFTracks(int argc, char* argv[],
     }
 
     // write track finding/seeding performance
+
+    // where you compare the ckf/input particles
+    // final writer to compute performance
     TrackFinderPerformanceWriter::Config tfPerfCfg;
     tfPerfCfg.inputProtoTracks = inputProtoTracks;
     // using selected particles
