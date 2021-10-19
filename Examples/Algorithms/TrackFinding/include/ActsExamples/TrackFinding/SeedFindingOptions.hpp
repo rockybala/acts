@@ -12,9 +12,10 @@ namespace Options {
 /// @param desc The options description to add options to for seed finding
 void addSeedFindingOptions(Description& desc);
 
-/// Read TrackFinding options to create the algorithm config.
+/// Read SeedFinding options to create the algorithm config.
 ///
 /// @param variables The variables to read from for seed finding
+/// Note this will take in the variable map
 SeedFindingAlgorithm::Config readSeedFindingConfig(
     const Variables& variables);
 

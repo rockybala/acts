@@ -31,6 +31,7 @@
 #include "ActsExamples/TrackFinding/SpacePointMakerOptions.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingAlgorithm.hpp"
 #include "ActsExamples/TrackFinding/TrackFindingOptions.hpp"
+// adding Seed finding options
 #include "ActsExamples/TrackFinding/SeedFindingOptions.hpp"
 #include "ActsExamples/TrackFinding/TrackParamsEstimationAlgorithm.hpp"
 #include "ActsExamples/TrackFitting/TrackFittingOptions.hpp"
@@ -75,6 +76,7 @@ int runRecCKFTracks(int argc, char* argv[],
   Options::addMagneticFieldOptions(desc);
   Options::addFittingOptions(desc);
   Options::addTrackFindingOptions(desc);
+  // adding seed finding options
   Options::addSeedFindingOptions(desc);
   addRecCKFOptions(desc);
   Options::addDigitizationOptions(desc);
@@ -87,7 +89,7 @@ int runRecCKFTracks(int argc, char* argv[],
   }
 
   Sequencer sequencer(Options::readSequencerConfig(vm));
-
+  // SETUP READING THE SEEDING OPTIONS HERE
   // Read some standard options
   auto logLevel = Options::readLogLevel(vm);
   auto inputDir = vm["input-dir"].as<std::string>();
@@ -136,6 +138,8 @@ int runRecCKFTracks(int argc, char* argv[],
   // The selected particles
   const auto& inputParticles = particleSelectorCfg.outputParticles;
 
+  // Read the seed finding configuration parameters
+  auto seedFindingCfg = Options::readSeedFindingConfig(vm); 
   // Create starting parameters from either particle smearing or combined seed
   // finding and track parameters estimation
   std::string outputTrackParameters;
@@ -177,6 +181,7 @@ int runRecCKFTracks(int argc, char* argv[],
       seedingCfg.outputSeeds = "seeds";
       seedingCfg.outputProtoTracks = "prototracks";
 
+      // Now we want to take these as input parameters
       seedingCfg.gridConfig.rMax = 200._mm;
       seedingCfg.seedFinderConfig.rMax = seedingCfg.gridConfig.rMax;
 
