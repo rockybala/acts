@@ -49,25 +49,25 @@ void ActsExamples::Options::addSeedFindingOptions(
   opt("sf-bFieldInZ", value<float>(), "Magnetic field strength in kiloTesla");
   opt("sf-beamPos", value<read_range>()->multitoken()->default_value({0., 0.}),
   "(x, y) position of the beam to offset Space Points");
-  opt("sf-maxPt", value<float>(), "maximum Pt for scattering cut");
+  opt("sf-maxPtScattering", value<float>(), "maximum Pt for scattering cut");
   opt("sf-radLengthPerSeed", value<float>(), "Average radiation length");
 
 }
 
   // Add seed finding options here
-  // Probably better practice to do this here as opposed to in the CKF code to avoid having
-  // to check for the presence of variable
+  // Probably better practice to do this here as opposed to in the CKF code 
   // return a seedFinderConfig object
-  Acts::Seeding::SeedFinderConfig<SpacePoint> ActsExamples::Options::readSeedFindingConfig(
+  Acts::Seeding::SeedfinderConfig ActsExamples::Options::readSeedFindingConfig(
     const ActsExamples::Options::Variables& vm) {
-    // Modify config here, kinda just copy the CKF code
-    // Create SpacePointGridConfig and SeedFinderConfig
-    // Want to return both of these
-    Acts::Seeding::SeedFinderConfig<SpacePoint> cfg;
-
+    // Return seedFinderConfig and then set gridFinderConfig variables to be the same in the CKF code
+    // Creates a new SeedfinderConfig struct
+    Acts::Seeding::SeedfinderConfig cfg;
+    //Acts::Seeding::SeedFinderConfig<SpacePoint> cfg;
+    // Pretty sure these should just be set up with the default now, if it is supplied in the command line, will be changed from the default
     // compare to variables here https://github.com/ehofgard/acts/blob/main/Core/include/Acts/Seeding/SeedfinderConfig.hpp
+    // add more parameters here? 
     if (vm.count("sf-minPt")) {
-    cfg.minPt = vm["sf-minPt"].as<float>();
+      cfg.minPt = vm["sf-minPt"].as<float>();
     }
     if (vm.count("sf-cotThetaMax")) {
       cfg.cotThetaMax = vm["sf-cotThetaMax"].as<float>();
@@ -121,8 +121,8 @@ void ActsExamples::Options::addSeedFindingOptions(
     if (vm.count("sf-radLengthPerSeed")) {
       cfg.radLengthPerSeed = vm["sf-radLengthPerSeed"].as<float>();
     }
-    if (vm.count("sf-maxPt")) {
-      cfg.maxPt = vm["sf-maxPt"].as<float>();
+    if (vm.count("sf-maxPtScattering")) {
+      cfg.maxPtScattering = vm["sf-maxPtScattering"].as<float>();
     }
     return cfg;
   }

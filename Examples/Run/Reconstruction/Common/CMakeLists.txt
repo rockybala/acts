@@ -12,7 +12,8 @@ target_link_libraries(
     ActsExamplesFramework
     ActsExamplesCommon
     ActsExamplesMagneticField
-    ActsExamplesIoPerformance)
+    ActsExamplesIoPerformance
+    Boost::program_options)
 if(ACTS_BUILD_PLUGIN_ONNX)
   target_compile_definitions(
     ActsExamplesRecTracksCommon PUBLIC ACTS_PLUGIN_ONNX)

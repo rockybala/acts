@@ -138,8 +138,6 @@ int runRecCKFTracks(int argc, char* argv[],
   // The selected particles
   const auto& inputParticles = particleSelectorCfg.outputParticles;
 
-  // Read the seed finding configuration parameters
-  auto seedFindingCfg = Options::readSeedFindingConfig(vm); 
   // Create starting parameters from either particle smearing or combined seed
   // finding and track parameters estimation
   std::string outputTrackParameters;
@@ -174,14 +172,28 @@ int runRecCKFTracks(int argc, char* argv[],
     } else {
       // Seeding algorithm
       cout << "Running seeding algorithm";
+      //auto seedingCfg = Options::readSeedFindingConfig(vm)
       SeedingAlgorithm::Config seedingCfg;
       seedingCfg.inputSpacePoints = {
           spCfg.outputSpacePoints,
       };
       seedingCfg.outputSeeds = "seeds";
       seedingCfg.outputProtoTracks = "prototracks";
+      // We read the seedFinderConfig arguments from the command line
+      // Values in this code are slightly different than those in SeedfinderConfig.cpp
+      // sets the seedingCfg.seedFinderConfig equal to the read values
+      seedingCfg.seedFinderConfig = Options::readSeedFindingConfig(vm);
 
+      seedingCfg.gridConfig.rMax = seedingCfg.seedFinderConfig.rMax;
+      seedingCfg.gridConfig.deltaRMax = seedingCfg.seedFinderConfig.deltaRMax;
+      seedingCfg.gridConfig.zMin = seedingCfg.seedFinderConfig.zMin;
+      seedingCfg.gridConfig.zMax = seedingCfg.seedFinderConfig.zMax;
+      seedingCfg.gridConfig.cotThetaMax = seedingCfg.seedFinderConfig.cotThetaMax;
+      seedingCfg.gridConfig.minPt = seedingCfg.seedFinderConfig.minPt;
+      seedingCfg.gridConfig.impactMax = seedingCfg.seedFinderConfig.impactMax;
+      seedingCfg.gridConfig.bFieldInZ = seedingCfg.seedFinderConfig.bFieldInZ; 
       // Now we want to take these as input parameters
+      /*
       seedingCfg.gridConfig.rMax = 200._mm;
       seedingCfg.seedFinderConfig.rMax = seedingCfg.gridConfig.rMax;
 
@@ -222,6 +234,7 @@ int runRecCKFTracks(int argc, char* argv[],
       seedingCfg.seedFinderConfig.beamPos = {0_mm, 0_mm};
 
       seedingCfg.seedFinderConfig.impactMax = 3._mm;
+      */
 
       sequencer.addAlgorithm(
           std::make_shared<SeedingAlgorithm>(seedingCfg, logLevel));
