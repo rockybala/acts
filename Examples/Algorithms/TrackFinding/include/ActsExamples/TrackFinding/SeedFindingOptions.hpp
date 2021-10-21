@@ -16,7 +16,7 @@ void addSeedFindingOptions(Description& desc);
 ///
 /// @param variables The variables to read from for seed finding
 /// Note this will take in the variable map
-SeedFindingAlgorithm::Config readSeedFindingConfig(
+Acts::SeedfinderConfig<SimSpacePoint> readSeedFindingConfig(
     const Variables& variables);
 
 }  // namespace Options

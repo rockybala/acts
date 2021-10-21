@@ -57,11 +57,11 @@ void ActsExamples::Options::addSeedFindingOptions(
   // Add seed finding options here
   // Probably better practice to do this here as opposed to in the CKF code 
   // return a seedFinderConfig object
-  Acts::Seeding::SeedfinderConfig ActsExamples::Options::readSeedFindingConfig(
+  Acts::SeedfinderConfig<SimSpacePoint> ActsExamples::Options::readSeedFindingConfig(
     const ActsExamples::Options::Variables& vm) {
     // Return seedFinderConfig and then set gridFinderConfig variables to be the same in the CKF code
     // Creates a new SeedfinderConfig struct
-    Acts::Seeding::SeedfinderConfig cfg;
+    Acts::SeedfinderConfig<SimSpacePoint> cfg;
     //Acts::Seeding::SeedFinderConfig<SpacePoint> cfg;
     // Pretty sure these should just be set up with the default now, if it is supplied in the command line, will be changed from the default
     // compare to variables here https://github.com/ehofgard/acts/blob/main/Core/include/Acts/Seeding/SeedfinderConfig.hpp

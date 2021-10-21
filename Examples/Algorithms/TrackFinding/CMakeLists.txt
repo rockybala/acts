@@ -6,7 +6,8 @@ add_library(
   src/TrackFindingAlgorithm.cpp
   src/TrackFindingAlgorithmFunction.cpp
   src/TrackFindingOptions.cpp
-  src/TrackParamsEstimationAlgorithm.cpp)
+  src/TrackParamsEstimationAlgorithm.cpp
+  src/SeedFindingOptions.cpp)
 target_include_directories(
   ActsExamplesTrackFinding
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
@@ -16,8 +17,7 @@ target_link_libraries(
     ActsCore
     ActsExamplesFramework
     ActsExamplesIoJson
-    ActsExamplesMagneticField
-    Boost::program_options)
+    ActsExamplesMagneticField)
 
 install(
   TARGETS ActsExamplesTrackFinding

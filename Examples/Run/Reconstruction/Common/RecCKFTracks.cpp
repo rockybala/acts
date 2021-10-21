@@ -100,8 +100,8 @@ int runRecCKFTracks(int argc, char* argv[],
   bool truthEstimatedSeeded =
       vm["ckf-truth-estimated-seeds"].template as<bool>();
       
-  cout << truthSmearedSeeded;
-  cout << truthEstimatedSeeded;
+  std::cout << truthSmearedSeeded;
+  std::cout << truthEstimatedSeeded;
   // Setup detector geometry
   auto geometry = Geometry::build(vm, *detector);
   auto trackingGeometry = geometry.first;
@@ -171,8 +171,10 @@ int runRecCKFTracks(int argc, char* argv[],
       inputProtoTracks = trackFinderCfg.outputProtoTracks;
     } else {
       // Seeding algorithm
-      cout << "Running seeding algorithm";
+      std::cout << "Running seeding algorithm";
       //auto seedingCfg = Options::readSeedFindingConfig(vm)
+      //Acts::SeedfinderConfig<SpacePoint> seedFinderCfg =
+      //Options::readSeedFinderConfig(vm);
       SeedingAlgorithm::Config seedingCfg;
       seedingCfg.inputSpacePoints = {
           spCfg.outputSpacePoints,
@@ -182,6 +184,7 @@ int runRecCKFTracks(int argc, char* argv[],
       // We read the seedFinderConfig arguments from the command line
       // Values in this code are slightly different than those in SeedfinderConfig.cpp
       // sets the seedingCfg.seedFinderConfig equal to the read values
+      //Acts::SeedfinderConfig<SimSpacePoint> seeding = Options::readSeedFindingConfig(vm);
       seedingCfg.seedFinderConfig = Options::readSeedFindingConfig(vm);
 
       seedingCfg.gridConfig.rMax = seedingCfg.seedFinderConfig.rMax;
@@ -192,6 +195,10 @@ int runRecCKFTracks(int argc, char* argv[],
       seedingCfg.gridConfig.minPt = seedingCfg.seedFinderConfig.minPt;
       seedingCfg.gridConfig.impactMax = seedingCfg.seedFinderConfig.impactMax;
       seedingCfg.gridConfig.bFieldInZ = seedingCfg.seedFinderConfig.bFieldInZ; 
+
+      seedingCfg.seedFilterConfig.deltaRMin = seedingCfg.seedFinderConfig.deltaRMin;
+      seedingCfg.seedFilterConfig.maxSeedsPerSpM = seedingCfg.seedFinderConfig.maxSeedsPerSpM;
+
       // Now we want to take these as input parameters
       /*
       seedingCfg.gridConfig.rMax = 200._mm;
