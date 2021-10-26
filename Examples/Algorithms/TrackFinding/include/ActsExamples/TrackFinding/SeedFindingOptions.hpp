@@ -3,6 +3,7 @@
 #include "Acts/Utilities/Logger.hpp"
 #include "ActsExamples/TrackFinding/SeedingAlgorithm.hpp"
 #include "ActsExamples/Utilities/OptionsFwd.hpp"
+#include "ActsExamples/EventData/SimSpacePoint.hpp"
 
 namespace ActsExamples {
 namespace Options {
@@ -16,7 +17,7 @@ void addSeedFindingOptions(Description& desc);
 ///
 /// @param variables The variables to read from for seed finding
 /// Note this will take in the variable map
-Acts::SeedfinderConfig<SimSpacePoint> readSeedFindingConfig(
+Acts::SeedfinderConfig<ActsExamples::SimSpacePoint> readSeedFindingConfig(
     const Variables& variables);
 
 }  // namespace Options

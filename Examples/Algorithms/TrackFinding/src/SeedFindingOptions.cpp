@@ -4,8 +4,12 @@
 
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "ActsExamples/Utilities/Options.hpp"
+#include "ActsExamples/EventData/SimSpacePoint.hpp"
 
 #include <string>
+#include <iostream>
+#include <string>
+#include <vector>
 
 // From my understanding, this is doing the boosting?
 
@@ -47,8 +51,8 @@ void ActsExamples::Options::addSeedFindingOptions(
   opt("sf-rMin", value<float>(),
   "Min radius of Space Points included in algorithm in mm");
   opt("sf-bFieldInZ", value<float>(), "Magnetic field strength in kiloTesla");
-  opt("sf-beamPos", value<read_range>()->multitoken()->default_value({0., 0.}),
-  "(x, y) position of the beam to offset Space Points");
+  //opt("sf-beamPos", value<read_range>()->multitoken()->default_value({0., 0.}),
+  //"(x, y) position of the beam to offset Space Points");
   opt("sf-maxPtScattering", value<float>(), "maximum Pt for scattering cut");
   opt("sf-radLengthPerSeed", value<float>(), "Average radiation length");
 
@@ -57,11 +61,11 @@ void ActsExamples::Options::addSeedFindingOptions(
   // Add seed finding options here
   // Probably better practice to do this here as opposed to in the CKF code 
   // return a seedFinderConfig object
-  Acts::SeedfinderConfig<SimSpacePoint> ActsExamples::Options::readSeedFindingConfig(
+  Acts::SeedfinderConfig<ActsExamples::SimSpacePoint> ActsExamples::Options::readSeedFindingConfig(
     const ActsExamples::Options::Variables& vm) {
     // Return seedFinderConfig and then set gridFinderConfig variables to be the same in the CKF code
     // Creates a new SeedfinderConfig struct
-    Acts::SeedfinderConfig<SimSpacePoint> cfg;
+    Acts::SeedfinderConfig<ActsExamples::SimSpacePoint> cfg;
     //Acts::Seeding::SeedFinderConfig<SpacePoint> cfg;
     // Pretty sure these should just be set up with the default now, if it is supplied in the command line, will be changed from the default
     // compare to variables here https://github.com/ehofgard/acts/blob/main/Core/include/Acts/Seeding/SeedfinderConfig.hpp
@@ -108,6 +112,7 @@ void ActsExamples::Options::addSeedFindingOptions(
     if (vm.count("sf-bFieldInZ")) {
       cfg.bFieldInZ = vm["sf-bFieldInZ"].as<float>();
     }
+    /*
     if (vm.count("sf-beamPos")) {
       auto beamPos = vm["sf-beamPos"].template as<read_range>();
       if (beamPos.size() != 2) {
@@ -118,6 +123,7 @@ void ActsExamples::Options::addSeedFindingOptions(
       }
       cfg.beamPos = {beamPos.at(0), beamPos.at(1)};
     }
+    */
     if (vm.count("sf-radLengthPerSeed")) {
       cfg.radLengthPerSeed = vm["sf-radLengthPerSeed"].as<float>();
     }
@@ -125,7 +131,4 @@ void ActsExamples::Options::addSeedFindingOptions(
       cfg.maxPtScattering = vm["sf-maxPtScattering"].as<float>();
     }
     return cfg;
-  }
-      
-
   }
