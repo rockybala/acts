@@ -187,14 +187,17 @@ int runRecCKFTracks(int argc, char* argv[],
       //Acts::SeedfinderConfig<SimSpacePoint> seeding = Options::readSeedFindingConfig(vm);
       seedingCfg.seedFinderConfig = Options::readSeedFindingConfig(vm);
       // Would need to rebuild to add any of this
-      // std::cout << seedingCfg.seedFinderConfig.rMax
+      //std::cout << seedingCfg.seedFinderConfig.rMax;
+      //std::cout
+      //std::cout << seedingCfg.SeedFind
+
       seedingCfg.gridConfig.rMax = seedingCfg.seedFinderConfig.rMax;
       seedingCfg.gridConfig.deltaRMax = seedingCfg.seedFinderConfig.deltaRMax;
       seedingCfg.gridConfig.zMin = seedingCfg.seedFinderConfig.zMin;
       seedingCfg.gridConfig.zMax = seedingCfg.seedFinderConfig.zMax;
       seedingCfg.gridConfig.cotThetaMax = seedingCfg.seedFinderConfig.cotThetaMax;
       seedingCfg.gridConfig.minPt = seedingCfg.seedFinderConfig.minPt;
-      seedingCfg.gridConfig.impactMax = seedingCfg.seedFinderConfig.impactMax;
+      //seedingCfg.gridConfig.impactMax = seedingCfg.seedFinderConfig.impactMax;
       seedingCfg.gridConfig.bFieldInZ = seedingCfg.seedFinderConfig.bFieldInZ; 
 
       seedingCfg.seedFilterConfig.deltaRMin = seedingCfg.seedFinderConfig.deltaRMin;

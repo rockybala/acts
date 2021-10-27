@@ -5,6 +5,7 @@
 #include "Acts/Geometry/GeometryIdentifier.hpp"
 #include "ActsExamples/Utilities/Options.hpp"
 #include "ActsExamples/EventData/SimSpacePoint.hpp"
+#include "Acts/Definitions/Units.hpp"
 
 #include <string>
 #include <iostream>
@@ -27,7 +28,7 @@ void ActsExamples::Options::addSeedFindingOptions(
   // This is only if the options are included, then they should
   // be changes in the SeedfinderConfig struct
   // could add value<type>() -> default_value()
-  opt("sf-minPt", value<float>(),"Seed finder minimum pT.");
+  opt("sf-minPt", value<float>(),"Seed finder minimum pT in MeV.");
   opt( "sf-cotThetaMax", value<float>(), "cot of maximum theta angle");
   opt("sf-deltaRMin", value<float>(),
   "Minimum distance in mm between two SPs in a seed");
@@ -71,19 +72,19 @@ void ActsExamples::Options::addSeedFindingOptions(
     // compare to variables here https://github.com/ehofgard/acts/blob/main/Core/include/Acts/Seeding/SeedfinderConfig.hpp
     // add more parameters here? 
     if (vm.count("sf-minPt")) {
-      cfg.minPt = vm["sf-minPt"].as<float>();
+      cfg.minPt = vm["sf-minPt"].as<float>() * Acts::UnitConstants::MeV;
     }
     if (vm.count("sf-cotThetaMax")) {
-      cfg.cotThetaMax = vm["sf-cotThetaMax"].as<float>();
+      cfg.cotThetaMax = vm["sf-cotThetaMax"].as<float>() * Acts::UnitConstants::mm;;
     }
     if (vm.count("sf-deltaRMin")) {
-      cfg.deltaRMin = vm["sf-deltaRMin"].as<float>();
+      cfg.deltaRMin = vm["sf-deltaRMin"].as<float>() * Acts::UnitConstants::mm;;
     }
     if (vm.count("sf-deltaRMax")) {
-      cfg.deltaRMax = vm["sf-deltaRMax"].as<float>();
+      cfg.deltaRMax = vm["sf-deltaRMax"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-impactMax")) {
-      cfg.impactMax = vm["sf-impactMax"].as<float>();
+      cfg.impactMax = vm["sf-impactMax"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-sigmaScattering")) {
       cfg.sigmaScattering = vm["sf-sigmaScattering"].as<float>();
@@ -92,25 +93,25 @@ void ActsExamples::Options::addSeedFindingOptions(
       cfg.maxSeedsPerSpM = vm["sf-maxSeedsPerSpM"].as<size_t>();
     }
     if (vm.count("sf-collisionRegionMin")) {
-      cfg.collisionRegionMin = vm["sf-collisionRegionMin"].as<float>();
+      cfg.collisionRegionMin = vm["sf-collisionRegionMin"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-collisionRegionMax")) {
-      cfg.collisionRegionMax = vm["sf-collisionRegionMax"].as<float>();
+      cfg.collisionRegionMax = vm["sf-collisionRegionMax"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-zMin")) {
-      cfg.zMin = vm["sf-zMin"].as<float>();
+      cfg.zMin = vm["sf-zMin"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-zMax")) {
-      cfg.zMax = vm["sf-zMax"].as<float>();
+      cfg.zMax = vm["sf-zMax"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-rMax")) {
-      cfg.rMax = vm["sf-rMax"].as<float>();
+      cfg.rMax = vm["sf-rMax"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-rMin")) {
-      cfg.rMin = vm["sf-rMin"].as<float>();
+      cfg.rMin = vm["sf-rMin"].as<float>() * Acts::UnitConstants::mm;
     }
     if (vm.count("sf-bFieldInZ")) {
-      cfg.bFieldInZ = vm["sf-bFieldInZ"].as<float>();
+      cfg.bFieldInZ = vm["sf-bFieldInZ"].as<float>() * Acts::UnitConstants::T;
     }
     /*
     if (vm.count("sf-beamPos")) {
@@ -128,7 +129,7 @@ void ActsExamples::Options::addSeedFindingOptions(
       cfg.radLengthPerSeed = vm["sf-radLengthPerSeed"].as<float>();
     }
     if (vm.count("sf-maxPtScattering")) {
-      cfg.maxPtScattering = vm["sf-maxPtScattering"].as<float>();
+      cfg.maxPtScattering = vm["sf-maxPtScattering"].as<float>() * Acts::UnitConstants::MeV;
     }
     return cfg;
   }
