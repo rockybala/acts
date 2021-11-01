@@ -86,6 +86,12 @@ class CKFPerformanceWriter final : public WriterT<TrajectoriesContainer> {
   /// Plot tool for track hit info
   TrackSummaryPlotTool m_trackSummaryPlotTool;
   TrackSummaryPlotTool::TrackSummaryPlotCache m_trackSummaryPlotCache;
+  
+  // Adding numbers for efficiency, fake, duplicate calculations
+  size_t m_nTotalTracks = 0;
+  size_t m_nTotalMatchedTracks = 0;
+  size_t m_nTotalFakeTracks = 0;
+  size_t m_nTotalDuplicateTracks = 0;
 };
 
 }  // namespace ActsExamples

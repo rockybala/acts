@@ -65,6 +65,19 @@ ActsExamples::CKFPerformanceWriter::~CKFPerformanceWriter() {
 }
 
 ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::endRun() {
+  float eff = float(m_nTotalMatchedTracks)/m_nTotalTracks;
+  float fakeRate = float(m_nTotalFakeTracks)/m_nTotalTracks;
+  float duplicationRate = float(m_nTotalDuplicateTracks)/m_nTotalTracks;
+
+  ACTS_DEBUG("nTotalTracks                = " << m_nTotalTracks);
+  ACTS_DEBUG("nTotalMatchedTracks         = " << m_nTotalMatchedTracks);
+  ACTS_DEBUG("nTotalDuplicateTracks       = " << m_nTotalDuplicateTracks);
+  ACTS_DEBUG("nTotalFakeTracks            = " << m_nTotalFakeTracks);
+
+  ACTS_INFO("Efficiency (nMatchedTracks/ nAllTracks) = " << eff);
+  ACTS_INFO("Fake rate (nFakeTracks/nAllTracks) = " << fakeRate);
+  ACTS_INFO("Duplicate rate (nDuplicateTracks/nAllTracks) = " << duplicationRate);
+  
   if (m_outputFile) {
     m_outputFile->cd();
     m_effPlotTool.write(m_effPlotCache);
@@ -185,10 +198,16 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
         inputFeatures[2] = trajState.chi2Sum * 1.0 / trajState.NDF;
         // predict if current trajectory is 'duplicate'
         bool isDuplicated = m_cfg.duplicatedPredictor(inputFeatures);
+        // Add to number of duplicated particles 
+        if (isDuplicated) {
+          m_nTotalDuplicateTracks ++; 
+        }
         // Fill the duplication rate
         m_duplicationPlotTool.fill(m_duplicationPlotCache, fittedParameters,
                                    isDuplicated);
       }
+      // Counting number of total trajectories
+      m_nTotalTracks ++;
     }  // end all trajectories in a multiTrajectory
   }    // end all multiTrajectories
 
@@ -208,6 +227,9 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
         // The tracks with maximum number of majority hits is taken as the
         // 'real' track; others are as 'duplicated'
         bool isDuplicated = (itrack != 0);
+        if (isDuplicated) {
+          m_nTotalDuplicateTracks ++; 
+        }
         // Fill the duplication rate
         m_duplicationPlotTool.fill(m_duplicationPlotCache, fittedParameters,
                                    isDuplicated);
@@ -228,6 +250,8 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
     auto imatched = matched.find(particleId);
     if (imatched != matched.end()) {
       nMatchedTracks = imatched->second.size();
+      // Add number for total matched tracks here
+      m_nTotalMatchedTracks += nMatchedTracks;
       isReconstructed = true;
     }
     // Fill efficiency plots
@@ -238,9 +262,11 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
 
     // Investigate the fake (i.e. truth-unmatched) tracks
     size_t nFakeTracks = 0;
+    // Using unmatched count that is already computed above, pretty sure this is right
     auto ifake = unmatched.find(particleId);
     if (ifake != unmatched.end()) {
       nFakeTracks = ifake->second;
+      m_nTotalFakeTracks += nFakeTracks; 
     }
     // Fill number of reconstructed/truth-matched/fake tracks for this particle
     m_fakeRatePlotTool.fill(m_fakeRatePlotCache, particle, nMatchedTracks,
