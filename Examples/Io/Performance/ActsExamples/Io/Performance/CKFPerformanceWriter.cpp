@@ -73,7 +73,7 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::endRun() {
   ACTS_DEBUG("nTotalMatchedTracks         = " << m_nTotalMatchedTracks);
   ACTS_DEBUG("nTotalDuplicateTracks       = " << m_nTotalDuplicateTracks);
   ACTS_DEBUG("nTotalFakeTracks            = " << m_nTotalFakeTracks);
-
+  // Need to find some way to get this into ML input
   ACTS_INFO("Efficiency (nMatchedTracks/ nAllTracks) = " << eff);
   ACTS_INFO("Fake rate (nFakeTracks/nAllTracks) = " << fakeRate);
   ACTS_INFO("Duplicate rate (nDuplicateTracks/nAllTracks) = " << duplicationRate);
@@ -148,8 +148,12 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
       const auto& fittedParameters = traj.trackParameters(trackTip);
       // Requirement on the pT of the track
       const auto& momentum = fittedParameters.momentum();
+      const auto eta = Acts::VectorHelpers::eta(fittedParameters.unitDirection());
       const auto pT = perp(momentum);
-      if (pT < m_cfg.ptMin) {
+      //const auto eta = 
+      // Add minPt and minEta here for efficiency calculations
+      // Could do some debugging with adding these
+      if (pT < m_cfg.ptMin || pT > m_cfg.ptMax || eta > m_cfg.etaMax || eta < m_cfg.etaMin) {
         continue;
       }
       // Fill the trajectory summary info
@@ -240,7 +244,10 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
   // Loop over all truth particle seeds for efficiency plots and reco details.
   // These are filled w.r.t. truth particle seed info
   for (const auto& particle : particles) {
-    if (particle.transverseMomentum() < m_cfg.ptMin) {
+    const auto eta = Acts::VectorHelpers::eta(particle.unitDirection());
+    if (particle.transverseMomentum() < m_cfg.ptMin || 
+        particle.transverseMomentum() > m_cfg.ptMax || eta < m_cfg.etaMin
+        || eta > m_cfg.EtaMax) {
       continue;
     }
     auto particleId = particle.particleId();

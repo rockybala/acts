@@ -203,6 +203,8 @@ int runRecCKFTracks(int argc, char* argv[],
       seedingCfg.seedFilterConfig.deltaRMin = seedingCfg.seedFinderConfig.deltaRMin;
       seedingCfg.seedFilterConfig.maxSeedsPerSpM = seedingCfg.seedFinderConfig.maxSeedsPerSpM;
 
+      seedingCfg.seedFinderConfig.beamPos = {0_mm, 0_mm};
+
       // Now we want to take these as input parameters
       /*
       seedingCfg.gridConfig.rMax = 200._mm;
@@ -345,14 +347,15 @@ int runRecCKFTracks(int argc, char* argv[],
       trackSummaryWriter, logLevel));
 
   // Write CKF performance data
-  CKFPerformanceWriter::Config perfWriterCfg;
+  //CKFPerformanceWriter::Config perfWriterCfg;
+  perfWriterCfg = Options.readCKFPerfConfig(vm);
   perfWriterCfg.inputParticles = inputParticles;
   perfWriterCfg.inputTrajectories = trackFindingCfg.outputTrajectories;
   perfWriterCfg.inputMeasurementParticlesMap =
       digiCfg.outputMeasurementParticlesMap;
   // The bottom seed could be the first, second or third hits on the truth track
   perfWriterCfg.nMeasurementsMin = particleSelectorCfg.nHitsMin - 3;
-  perfWriterCfg.ptMin = 0.4_GeV;
+  //perfWriterCfg.ptMin = 0.4_GeV;
   perfWriterCfg.filePath = outputDir + "/performance_ckf.root";
 #ifdef ACTS_PLUGIN_ONNX
   // Onnx plugin related options

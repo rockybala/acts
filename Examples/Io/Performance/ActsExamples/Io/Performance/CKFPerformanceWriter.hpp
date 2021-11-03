@@ -54,7 +54,14 @@ class CKFPerformanceWriter final : public WriterT<TrajectoriesContainer> {
     /// Min number of measurements
     size_t nMeasurementsMin = 9;
     /// Min transverse momentum
-    double ptMin = 1 * Acts::UnitConstants::GeV;
+    float ptMin = 1 * Acts::UnitConstants::GeV;
+    // Max transverse momentum
+    // Should probably initialize this to a boolean or something to see if you even
+    // want to use it
+    // Need to initialize these to better values, currently this is not implemented
+    float ptMax = std::numeric_limits<float>::max() * Acts::UnitConstant::GeV;
+    float etaMin = std::numeric_limits<float>::lowest();
+    float etaMax = std::numeric_limits<float>::max();
     /// function to check if neural network predicted track label is duplicate
     std::function<bool(std::vector<float>&)> duplicatedPredictor = nullptr;
   };
