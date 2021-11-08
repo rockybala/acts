@@ -34,6 +34,9 @@ Acts::SeedfinderConfig<ActsExamples::SimSpacePoint> readSeedFindingConfig(
 ActsExamples::CKFPerformanceWriter::Config readCKFPerfConfig(
     const Variables& variables);
 
+// Just incorporating outputML in CKF performance writer config
+/*
 bool readMLOutputConfig(const Variables& variables);
 }
 }  // namespace ActsExamples
+*/

@@ -64,6 +64,8 @@ class CKFPerformanceWriter final : public WriterT<TrajectoriesContainer> {
     float etaMax = std::numeric_limits<float>::max();
     /// function to check if neural network predicted track label is duplicate
     std::function<bool(std::vector<float>&)> duplicatedPredictor = nullptr;
+    // boolean for if we want ML output or not
+    bool outputIsML = false;
   };
 
   /// Construct from configuration and log level.

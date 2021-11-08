@@ -87,6 +87,7 @@ void ActsExamples::Options::addMLOutput(
   opt("output-ML", value<bool>(), "true if output should be ML friendly for EA algorithm");
 }
 
+/*
 bool ActsExamples::Options::readMLOutputConfig(
     const ActsExamples::Options::Variables& vm) {
   bool outputIsML = false;
@@ -95,7 +96,7 @@ bool ActsExamples::Options::readMLOutputConfig(
   }
   return outputIsML;
 }
-
+*/
 // Read the CKF performance config
 ActsExamples::CKFPerformanceWriter::Config ActsExamples::Options::readCKFPerfConfig(
     const ActsExamples::Options::Variables& vm) {
@@ -117,7 +118,10 @@ ActsExamples::CKFPerformanceWriter::Config ActsExamples::Options::readCKFPerfCon
   if (vm.count("ckf-PtMax")) {
     perfWriterCfg.ptMax = vm["ckf-PtMax"].as<float>() * Acts::UnitConstants::GeV;
   }
-
+  // adding ML output option here
+  if (vm.count("output-ML")) {
+    perfWriterCfg.outputIsML = vm["output-ML"].as<bool>();
+  }
   return perfWriterCfg;
   
 }
