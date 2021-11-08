@@ -69,14 +69,21 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::endRun() {
   float fakeRate = float(m_nTotalFakeTracks)/m_nTotalTracks;
   float duplicationRate = float(m_nTotalDuplicateTracks)/m_nTotalTracks;
 
+  float eff_particle = float(m_nTotalMatchedParticles)/m_nTotalParticles;
+  float fakeRate_particle = float(m_nTotalFakeParticles)/m_nTotalParticles;
+  float duplicationRate_particle = float(m_nTotalDuplicateParticles)/m_nTotalParticles;
+
   ACTS_DEBUG("nTotalTracks                = " << m_nTotalTracks);
   ACTS_DEBUG("nTotalMatchedTracks         = " << m_nTotalMatchedTracks);
   ACTS_DEBUG("nTotalDuplicateTracks       = " << m_nTotalDuplicateTracks);
   ACTS_DEBUG("nTotalFakeTracks            = " << m_nTotalFakeTracks);
   // Need to find some way to get this into ML input
-  ACTS_INFO("Efficiency (nMatchedTracks/ nAllTracks) = " << eff);
-  ACTS_INFO("Fake rate (nFakeTracks/nAllTracks) = " << fakeRate);
-  ACTS_INFO("Duplicate rate (nDuplicateTracks/nAllTracks) = " << duplicationRate);
+  ACTS_INFO("Efficiency with tracks (nMatchedTracks/ nAllTracks) = " << eff);
+  ACTS_INFO("Fake rate with tracks (nFakeTracks/nAllTracks) = " << fakeRate);
+  ACTS_INFO("Duplicate rate with tracks (nDuplicateTracks/nAllTracks) = " << duplicationRate);
+  ACTS_INFO("Efficiency with particles (nMatchedParticles/nTrueParticles) = " << eff_particle);
+  ACTS_INFO("Fake rate with particles (nFakeParticles/nTrueParticles) = " << fakeRate_particle);
+  ACTS_INFO("Duplicate rate with particles (nDuplicateParticles/nTrueParticles) = " << duplicationRate_particle);
   
   if (m_outputFile) {
     m_outputFile->cd();
@@ -243,11 +250,14 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
 
   // Loop over all truth particle seeds for efficiency plots and reco details.
   // These are filled w.r.t. truth particle seed info
+
+  // Count the number of particles
+  
   for (const auto& particle : particles) {
     const auto eta = Acts::VectorHelpers::eta(particle.unitDirection());
     if (particle.transverseMomentum() < m_cfg.ptMin || 
         particle.transverseMomentum() > m_cfg.ptMax || eta < m_cfg.etaMin
-        || eta > m_cfg.EtaMax) {
+        || eta > m_cfg.etaMax) {
       continue;
     }
     auto particleId = particle.particleId();
@@ -259,6 +269,11 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
       nMatchedTracks = imatched->second.size();
       // Add number for total matched tracks here
       m_nTotalMatchedTracks += nMatchedTracks;
+      m_nTotalMatchedParticles += 1;
+      // Check if the particle has more than one matched track for the duplicate rate
+      if (nMatchedTracks > 1) {
+        m_nTotalDuplicateParticles += 1;
+      }
       isReconstructed = true;
     }
     // Fill efficiency plots
@@ -274,10 +289,13 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
     if (ifake != unmatched.end()) {
       nFakeTracks = ifake->second;
       m_nTotalFakeTracks += nFakeTracks; 
+      // unmatched is a map of majority particle id to # of tracks associated with that particle
+      m_nTotalFakeParticles += 1;
     }
     // Fill number of reconstructed/truth-matched/fake tracks for this particle
     m_fakeRatePlotTool.fill(m_fakeRatePlotCache, particle, nMatchedTracks,
                             nFakeTracks);
+    m_nTotalParticles += 1;
   }  // end all truth particles
 
   return ProcessCode::SUCCESS;
