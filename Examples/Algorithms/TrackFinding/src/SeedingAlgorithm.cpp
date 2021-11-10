@@ -17,6 +17,7 @@
 #include "ActsExamples/EventData/ProtoTrack.hpp"
 #include "ActsExamples/EventData/SimSeed.hpp"
 #include "ActsExamples/Framework/WhiteBoard.hpp"
+#include "ActsExamples/EventData/SimSpacePoint.hpp"
 
 #include <stdexcept>
 

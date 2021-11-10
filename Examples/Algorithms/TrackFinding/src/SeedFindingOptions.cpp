@@ -20,7 +20,7 @@
 // Just follow the TrackFindingOptions example because we want to run combinations with a shell script
 
 void ActsExamples::Options::addSeedFindingOptions(
-    ActsExamples::Options::Description& desc) {
+  ActsExamples::Options::Description& desc) {
   using boost::program_options::value;
 
   auto opt = desc.add_options();
@@ -61,7 +61,7 @@ void ActsExamples::Options::addSeedFindingOptions(
 }
 
 void ActsExamples::Options::addCKFPerfOptions(
-    ActsExamples::Options::Description& desc) {
+  ActsExamples::Options::Description& desc) {
   using boost::program_options::value;
   // Options for optimizing score function based on eta, pt
   // In the future could use this for barrel/endcap dependent scoring
@@ -71,22 +71,16 @@ void ActsExamples::Options::addCKFPerfOptions(
   opt("ckf-EtaMin", value<float>(), "min eta for particles in efficiency calculations");
   opt("ckf-PtMin", value<float>(), "min transverse momentum for particles in efficiency calculations in GeV");
   opt("ckf-PtMax", value<float>(), "max transverse momentum for particles in efficiency calculations in GeV");
-  '''
-  // Boolean values to consider max/min eta etc.
-  opt("ckf-EtaMax-bool",value<bool>(), "if we consider max eta for particles in efficiency calculations");
-  opt("ckf-EtaMin-bool",value<bool>(), "if we consider min eta for particles in efficiency calculations");
-  opt("ckf-PtMin-bool",value<bool>(), "if we consider min pt for particles in efficiency calculations");
-  opt("ckf-PtMax-bool",value<bool>(), "if we consider max pt for particles in efficiency calculations");
-  '''
 }
 
+/*
 void ActsExamples::Options::addMLOutput(
-    ActsExamples::Options::Description& desc) {
+  ActsExamples::Options::Description& desc) {
   using boost::program_options::value;
   auto opt = desc.add_options();
   opt("output-ML", value<bool>(), "true if output should be ML friendly for EA algorithm");
 }
-
+*/
 /*
 bool ActsExamples::Options::readMLOutputConfig(
     const ActsExamples::Options::Variables& vm) {
@@ -99,7 +93,7 @@ bool ActsExamples::Options::readMLOutputConfig(
 */
 // Read the CKF performance config
 ActsExamples::CKFPerformanceWriter::Config ActsExamples::Options::readCKFPerfConfig(
-    const ActsExamples::Options::Variables& vm) {
+  const ActsExamples::Options::Variables& vm) {
   ActsExamples::CKFPerformanceWriter::Config perfWriterCfg;
 
   // Need to add these variables to the perfWriterConfig 

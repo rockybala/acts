@@ -29,11 +29,11 @@ void addMLOutput(Description& desc);
 Acts::SeedfinderConfig<ActsExamples::SimSpacePoint> readSeedFindingConfig(
     const Variables& variables);
 
-}  // namespace Options
 
 ActsExamples::CKFPerformanceWriter::Config readCKFPerfConfig(
     const Variables& variables);
-
+}  // namespace Options
+} // namespace ActsExamples
 // Just incorporating outputML in CKF performance writer config
 /*
 bool readMLOutputConfig(const Variables& variables);

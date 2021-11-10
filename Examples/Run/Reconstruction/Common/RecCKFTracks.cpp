@@ -23,6 +23,8 @@
 #include "ActsExamples/Io/Performance/TrackFinderPerformanceWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrajectoryStatesWriter.hpp"
 #include "ActsExamples/Io/Root/RootTrajectorySummaryWriter.hpp"
+// Adding seeding performance writer
+#include "ActsExamples/Io/Performance/SeedingPerformanceWriter.hpp"
 #include "ActsExamples/MagneticField/MagneticFieldOptions.hpp"
 #include "ActsExamples/Options/CommonOptions.hpp"
 #include "ActsExamples/Reconstruction/ReconstructionBase.hpp"
@@ -253,6 +255,17 @@ int runRecCKFTracks(int argc, char* argv[],
           std::make_shared<SeedingAlgorithm>(seedingCfg, logLevel));
       inputProtoTracks = seedingCfg.outputProtoTracks;
       inputSeeds = seedingCfg.outputSeeds;
+
+      // write track finding/seeding performance
+      // write seeding performance
+      // note, if we want ML output, don't want to create all of these histograms etc
+      SeedingPerformanceWriter::Config seedPerfCfg;
+      seedPerfCfg.inputProtoTracks = seedingCfg.outputProtoTracks;
+      seedPerfCfg.inputParticles = inputParticles;
+      seedPerfCfg.inputMeasurementParticlesMap = digiCfg.outputMeasurementParticlesMap;
+      seedPerfCfg.filePath = outputDir + "/performance_seeding_hists.root";
+      sequencer.addWriter(
+        std::make_shared<SeedingPerformanceWriter>(seedPerfCfg, logLevel));
     }
 
     // write track finding/seeding performance
@@ -347,8 +360,8 @@ int runRecCKFTracks(int argc, char* argv[],
       trackSummaryWriter, logLevel));
 
   // Write CKF performance data
-  //CKFPerformanceWriter::Config perfWriterCfg;
-  perfWriterCfg = Options.readCKFPerfConfig(vm);
+  CKFPerformanceWriter::Config perfWriterCfg;
+  perfWriterCfg = Options::readCKFPerfConfig(vm);
   perfWriterCfg.inputParticles = inputParticles;
   perfWriterCfg.inputTrajectories = trackFindingCfg.outputTrajectories;
   perfWriterCfg.inputMeasurementParticlesMap =

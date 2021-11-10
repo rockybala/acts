@@ -17,7 +17,8 @@ target_link_libraries(
     ActsCore
     ActsExamplesFramework
     ActsExamplesIoJson
-    ActsExamplesMagneticField)
+    ActsExamplesMagneticField
+    ActsExamplesIoPerformance)
 
 install(
   TARGETS ActsExamplesTrackFinding

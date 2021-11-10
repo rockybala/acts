@@ -59,7 +59,7 @@ class CKFPerformanceWriter final : public WriterT<TrajectoriesContainer> {
     // Should probably initialize this to a boolean or something to see if you even
     // want to use it
     // Need to initialize these to better values, currently this is not implemented
-    float ptMax = std::numeric_limits<float>::max() * Acts::UnitConstant::GeV;
+    float ptMax = std::numeric_limits<float>::max() * Acts::UnitConstants::GeV;
     float etaMin = std::numeric_limits<float>::lowest();
     float etaMax = std::numeric_limits<float>::max();
     /// function to check if neural network predicted track label is duplicate
