@@ -66,6 +66,8 @@ class CKFPerformanceWriter final : public WriterT<TrajectoriesContainer> {
     std::function<bool(std::vector<float>&)> duplicatedPredictor = nullptr;
     // boolean for if we want ML output or not
     bool outputIsML = false;
+    // Tag for whether a line is ML output
+    std::string mlTag = "mlTag";
   };
 
   /// Construct from configuration and log level.

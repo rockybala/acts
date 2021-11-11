@@ -73,15 +73,15 @@ void ActsExamples::Options::addCKFPerfOptions(
   opt("ckf-PtMax", value<float>(), "max transverse momentum for particles in efficiency calculations in GeV");
 }
 
-/*
+
 void ActsExamples::Options::addMLOutput(
   ActsExamples::Options::Description& desc) {
   using boost::program_options::value;
   auto opt = desc.add_options();
   opt("output-ML", value<bool>(), "true if output should be ML friendly for EA algorithm");
 }
-*/
-/*
+
+
 bool ActsExamples::Options::readMLOutputConfig(
     const ActsExamples::Options::Variables& vm) {
   bool outputIsML = false;
@@ -90,7 +90,7 @@ bool ActsExamples::Options::readMLOutputConfig(
   }
   return outputIsML;
 }
-*/
+
 // Read the CKF performance config
 ActsExamples::CKFPerformanceWriter::Config ActsExamples::Options::readCKFPerfConfig(
   const ActsExamples::Options::Variables& vm) {

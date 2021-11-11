@@ -80,6 +80,8 @@ int runRecCKFTracks(int argc, char* argv[],
   Options::addTrackFindingOptions(desc);
   // adding seed finding options
   Options::addSeedFindingOptions(desc);
+  Options::addCKFPerfOptions(desc);
+  Options::addMLOutput(desc);
   addRecCKFOptions(desc);
   Options::addDigitizationOptions(desc);
   Options::addSpacePointMakerOptions(desc);
@@ -101,6 +103,8 @@ int runRecCKFTracks(int argc, char* argv[],
   bool truthSmearedSeeded = vm["ckf-truth-smeared-seeds"].template as<bool>();
   bool truthEstimatedSeeded =
       vm["ckf-truth-estimated-seeds"].template as<bool>();
+  // Use this to format output
+  bool outputIsML = Options::readMLOutputConfig(vm);
       
   std::cout << truthSmearedSeeded;
   std::cout << truthEstimatedSeeded;
@@ -259,28 +263,33 @@ int runRecCKFTracks(int argc, char* argv[],
       // write track finding/seeding performance
       // write seeding performance
       // note, if we want ML output, don't want to create all of these histograms etc
-      SeedingPerformanceWriter::Config seedPerfCfg;
-      seedPerfCfg.inputProtoTracks = seedingCfg.outputProtoTracks;
-      seedPerfCfg.inputParticles = inputParticles;
-      seedPerfCfg.inputMeasurementParticlesMap = digiCfg.outputMeasurementParticlesMap;
-      seedPerfCfg.filePath = outputDir + "/performance_seeding_hists.root";
-      sequencer.addWriter(
-        std::make_shared<SeedingPerformanceWriter>(seedPerfCfg, logLevel));
+      if (!outputIsML) {
+        SeedingPerformanceWriter::Config seedPerfCfg;
+        seedPerfCfg.inputProtoTracks = seedingCfg.outputProtoTracks;
+        seedPerfCfg.inputParticles = inputParticles;
+        seedPerfCfg.inputMeasurementParticlesMap = digiCfg.outputMeasurementParticlesMap;
+        seedPerfCfg.filePath = outputDir + "/performance_seeding_hists.root";
+        sequencer.addWriter(
+            std::make_shared<SeedingPerformanceWriter>(seedPerfCfg, logLevel));
+      }
     }
 
     // write track finding/seeding performance
 
     // where you compare the ckf/input particles
     // final writer to compute performance
-    TrackFinderPerformanceWriter::Config tfPerfCfg;
-    tfPerfCfg.inputProtoTracks = inputProtoTracks;
-    // using selected particles
-    tfPerfCfg.inputParticles = inputParticles;
-    tfPerfCfg.inputMeasurementParticlesMap =
-        digiCfg.outputMeasurementParticlesMap;
-    tfPerfCfg.filePath = outputDir + "/performance_seeding_trees.root";
-    sequencer.addWriter(
-        std::make_shared<TrackFinderPerformanceWriter>(tfPerfCfg, logLevel));
+    // we only need this if we don't have ML output
+    if (!outputIsML) {
+        TrackFinderPerformanceWriter::Config tfPerfCfg;
+        tfPerfCfg.inputProtoTracks = inputProtoTracks;
+        // using selected particles
+        tfPerfCfg.inputParticles = inputParticles;
+        tfPerfCfg.inputMeasurementParticlesMap =
+            digiCfg.outputMeasurementParticlesMap;
+        tfPerfCfg.filePath = outputDir + "/performance_seeding_trees.root";
+        sequencer.addWriter(
+            std::make_shared<TrackFinderPerformanceWriter>(tfPerfCfg, logLevel));
+    }
 
     // Algorithm estimating track parameter from seed
     TrackParamsEstimationAlgorithm::Config paramsEstimationCfg;
@@ -327,38 +336,40 @@ int runRecCKFTracks(int argc, char* argv[],
       std::make_shared<TrackFindingAlgorithm>(trackFindingCfg, logLevel));
 
   // write track states from CKF
-  RootTrajectoryStatesWriter::Config trackStatesWriter;
-  trackStatesWriter.inputTrajectories = trackFindingCfg.outputTrajectories;
-  // @note The full particles collection is used here to avoid lots of warnings
-  // since the unselected CKF track might have a majority particle not in the
-  // filtered particle collection. This could be avoided when a seperate track
-  // selection algorithm is used.
-  trackStatesWriter.inputParticles = particleReader.outputParticles;
-  trackStatesWriter.inputSimHits = simHitReaderCfg.outputSimHits;
-  trackStatesWriter.inputMeasurementParticlesMap =
-      digiCfg.outputMeasurementParticlesMap;
-  trackStatesWriter.inputMeasurementSimHitsMap =
-      digiCfg.outputMeasurementSimHitsMap;
-  trackStatesWriter.filePath = outputDir + "/trackstates_ckf.root";
-  trackStatesWriter.treeName = "trackstates";
-  sequencer.addWriter(std::make_shared<RootTrajectoryStatesWriter>(
-      trackStatesWriter, logLevel));
+  // also only need this if output is not ML
+  if (!outputIsML) {
+    RootTrajectoryStatesWriter::Config trackStatesWriter;
+    trackStatesWriter.inputTrajectories = trackFindingCfg.outputTrajectories;
+    // @note The full particles collection is used here to avoid lots of warnings
+    // since the unselected CKF track might have a majority particle not in the
+    // filtered particle collection. This could be avoided when a seperate track
+    // selection algorithm is used.
+    trackStatesWriter.inputParticles = particleReader.outputParticles;
+    trackStatesWriter.inputSimHits = simHitReaderCfg.outputSimHits;
+    trackStatesWriter.inputMeasurementParticlesMap =
+        digiCfg.outputMeasurementParticlesMap;
+    trackStatesWriter.inputMeasurementSimHitsMap =
+        digiCfg.outputMeasurementSimHitsMap;
+    trackStatesWriter.filePath = outputDir + "/trackstates_ckf.root";
+    trackStatesWriter.treeName = "trackstates";
+    sequencer.addWriter(std::make_shared<RootTrajectoryStatesWriter>(
+        trackStatesWriter, logLevel));
 
-  // write track summary from CKF
-  RootTrajectorySummaryWriter::Config trackSummaryWriter;
-  trackSummaryWriter.inputTrajectories = trackFindingCfg.outputTrajectories;
-  // @note The full particles collection is used here to avoid lots of warnings
-  // since the unselected CKF track might have a majority particle not in the
-  // filtered particle collection. This could be avoided when a seperate track
-  // selection algorithm is used.
-  trackSummaryWriter.inputParticles = particleReader.outputParticles;
-  trackSummaryWriter.inputMeasurementParticlesMap =
-      digiCfg.outputMeasurementParticlesMap;
-  trackSummaryWriter.filePath = outputDir + "/tracksummary_ckf.root";
-  trackSummaryWriter.treeName = "tracksummary";
-  sequencer.addWriter(std::make_shared<RootTrajectorySummaryWriter>(
-      trackSummaryWriter, logLevel));
-
+    // write track summary from CKF
+    RootTrajectorySummaryWriter::Config trackSummaryWriter;
+    trackSummaryWriter.inputTrajectories = trackFindingCfg.outputTrajectories;
+    // @note The full particles collection is used here to avoid lots of warnings
+    // since the unselected CKF track might have a majority particle not in the
+    // filtered particle collection. This could be avoided when a seperate track
+    // selection algorithm is used.
+    trackSummaryWriter.inputParticles = particleReader.outputParticles;
+    trackSummaryWriter.inputMeasurementParticlesMap =
+        digiCfg.outputMeasurementParticlesMap;
+    trackSummaryWriter.filePath = outputDir + "/tracksummary_ckf.root";
+    trackSummaryWriter.treeName = "tracksummary";
+    sequencer.addWriter(std::make_shared<RootTrajectorySummaryWriter>(
+        trackSummaryWriter, logLevel));
+  }
   // Write CKF performance data
   CKFPerformanceWriter::Config perfWriterCfg;
   perfWriterCfg = Options::readCKFPerfConfig(vm);
