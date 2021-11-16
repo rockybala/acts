@@ -177,7 +177,7 @@ int runRecCKFTracks(int argc, char* argv[],
       inputProtoTracks = trackFinderCfg.outputProtoTracks;
     } else {
       // Seeding algorithm
-      std::cout << "Running seeding algorithm";
+      std::cout << "Running seeding algorithm" << std::endl;
       //auto seedingCfg = Options::readSeedFindingConfig(vm)
       //Acts::SeedfinderConfig<SpacePoint> seedFinderCfg =
       //Options::readSeedFinderConfig(vm);
@@ -379,7 +379,7 @@ int runRecCKFTracks(int argc, char* argv[],
       digiCfg.outputMeasurementParticlesMap;
   // The bottom seed could be the first, second or third hits on the truth track
   perfWriterCfg.nMeasurementsMin = particleSelectorCfg.nHitsMin - 3;
-  //perfWriterCfg.ptMin = 0.4_GeV;
+  perfWriterCfg.ptMin = 0.4_GeV;
   perfWriterCfg.filePath = outputDir + "/performance_ckf.root";
 #ifdef ACTS_PLUGIN_ONNX
   // Onnx plugin related options
@@ -393,6 +393,7 @@ int runRecCKFTracks(int argc, char* argv[],
   // Initialize OnnxRuntime plugin
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "MLTrackClassifier");
   Acts::MLTrackClassifier neuralNetworkClassifier(env, demoModelPath.c_str());
+  std::cout << "Running duplicate predictor" << std::endl;
   perfWriterCfg.duplicatedPredictor =
       std::bind(&Acts::MLTrackClassifier::isDuplicate, &neuralNetworkClassifier,
                 std::placeholders::_1, decisionThreshProb);

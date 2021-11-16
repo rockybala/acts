@@ -92,12 +92,11 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::endRun() {
   ACTS_INFO("Efficiency with particles (nMatchedParticles/nTrueParticles) = " << eff_particle);
   ACTS_INFO("Fake rate with particles (nFakeParticles/nTrueParticles) = " << fakeRate_particle);
   ACTS_INFO("Duplicate rate with particles (nDuplicateParticles/nTrueParticles) = " << duplicationRate_particle);
-
   if (m_cfg.outputIsML) {
     std::cout << m_cfg.mlTag << ","
     << "eff" << eff_particle << ","
-    << "fake" << fakeRate_particle << ","
-    << "dup" << duplicationRate_particle << std::endl;
+    << "fake" << fakeRate << ","
+    << "dup" << duplicationRate << std::endl;
     // don't need to write to file
     return ProcessCode::SUCCESS;;
   }
@@ -174,11 +173,14 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
       const auto& momentum = fittedParameters.momentum();
       const auto eta = Acts::VectorHelpers::eta(fittedParameters.unitDirection());
       const auto pT = perp(momentum);
-      //const auto eta = 
-      // Add minPt and minEta here for efficiency calculations
-      if (pT < m_cfg.ptMin || pT > m_cfg.ptMax || eta > m_cfg.etaMax || eta < m_cfg.etaMin) {
+      if (pT < m_cfg.ptMin) {
         continue;
       }
+      //const auto eta = 
+      // Add minPt and minEta here for efficiency calculations
+      //if (pT < m_cfg.ptMin || pT > m_cfg.ptMax || eta > m_cfg.etaMax || eta < m_cfg.etaMin) {
+      //  continue;
+      //}
       // Fill the trajectory summary info
       // Only need to do this if not ML output
       if (!m_cfg.outputIsML) {
@@ -261,6 +263,7 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
         // The tracks with maximum number of majority hits is taken as the
         // 'real' track; others are as 'duplicated'
         bool isDuplicated = (itrack != 0);
+        // the track is associated to the same particle
         if (isDuplicated) {
           m_nTotalDuplicateTracks ++; 
         }
@@ -280,11 +283,16 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
   
   for (const auto& particle : particles) {
     const auto eta = Acts::VectorHelpers::eta(particle.unitDirection());
+    /*
     if (particle.transverseMomentum() < m_cfg.ptMin || 
         particle.transverseMomentum() > m_cfg.ptMax || eta < m_cfg.etaMin
         || eta > m_cfg.etaMax) {
       continue;
     }
+    */
+   if (particle.transverseMomentum() < m_cfg.ptMin) {
+     continue;
+   }
     auto particleId = particle.particleId();
     // Investigate the truth-matched tracks
     size_t nMatchedTracks = 0;
