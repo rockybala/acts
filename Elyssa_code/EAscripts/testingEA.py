@@ -15,14 +15,35 @@ import multiprocessing
 import numpy as np
 import json
 import array
+import sys
+
+# Command line arguments
+# Implement this later
+
+'''
+ def getArgumentParser():
+     Get arguments from the command line
+     parser = argparse.ArgumentParser(description="Script to run evolutionary algorithm")
+     parser.add_argument('-i',
+                        '--infile',
+                        dest = 'infile',
+                        help = 'input ROOT file')
+    parser.add_argument('-o',
+                        '--outdir',
+                        dest='outdir',
+                        help = 'output directory for plots etc.',
+                        default = 'outdir')
+'''
+    
 
 
 
 # Definitions
 # Tags to use for reading output from seeding algorithm
 mlTag = 'mlTag'
-effTag, dupTag, seedsTag, truthTag = 'mlTageff', 'mlTagdup', 'mlTagseeds', 'mlTagtrue'
-NPOP = 50 # Population size
+effTag, dupTag, fakeTag = 'mlTageff', 'mlTagdup', 'mlTagfake'
+# used to be 50
+NPOP = 4 # Population size
 # INT_MIN, INT_MAX = 0, 5
 # FLT_MIN, FLT_MAX = 0.2, 3.0
 # Define bounds on parameters during training
@@ -36,15 +57,17 @@ NAME_TO_INDEX = {}
 for i, key in enumerate(NAME_TO_FACTOR):
     NAME_TO_INDEX[key] = i
 TournamentSize = 3 # Parameter used for selection
-NGEN = 200 # Number of generations
+# used to be 200
+NGEN = 1 # Number of generations
 CXPB, MUTPB, SIGMA, INDPB = 0.5, 0.3, 0.1, 0.2
 NAMES_DEF = []
 for oneName in NAME_TO_FACTOR:
     NAMES_DEF.append(oneName)
 # MIN_STRATEGY = 0.01
 # MAX_STRATEGY = .5
+# make these user arguments
 plotDirectory = "zEAttbar200gen" # Where to save the plots
-ttbarSampleInput = ['--input-dir', 'sim_generic_ATLASB_ttbar_e1_pu200_eta2.5/']
+ttbarSampleInput = ['--input-dir', '/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/ttbar_mu200_5events']
 ttbarSampleBool = True
 
 def normalizedToActual(normalizedInd):
@@ -79,12 +102,19 @@ def indPrint(ind):
 
 # Format the input for the seeding algorithm. 
 # Assumes program is in same directory as seeding algorithm
+# Adding the CKF parameters here
 def paramsToInput(params, names):
-    ret = ['./ActsExampleTestSeedAlgorithm',
-           '--response-file', 'config_seeding_ml']
+    ret = ['/afs/cern.ch/work/e/ehofgard/acts/build/bin/ActsExampleCKFTracksGeneric',
+           '--ckf-selection-chi2max', '15', '--bf-constant-tesla=0:0:2',
+           '--ckf-selection-nmax', '10', 
+           '--digi-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/Digitization/share/default-smearing-config-generic.json', 
+           '--geo-selection-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/TrackFinding/share/geoSelection-genericDetector.json',
+           '--output-ML','True','--input-dir=/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/ttbar_mu200_5events']
+    '''
     if (ttbarSampleBool):
         ret.append(ttbarSampleInput[0])
         ret.append(ttbarSampleInput[1])
+    '''
     if len(params) != len(names):
         raise Exception("Length of Params must equal names in paramsToInput")
     i = 0
@@ -96,27 +126,30 @@ def paramsToInput(params, names):
         i += 1
     return ret
 
-# Opens a subprocess that runs the seeding algorithm and retrieves output using grep
+# Opens a subprocess that runs the CKF and retrieves output using grep
 def executeAlg(arg):
+    print(arg)
     p2 = subprocess.Popen(
         arg, bufsize=4096, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     p1_out, p1_err = p2.communicate()
     p1_out = p1_out.decode()
+    print(p1_out)
     p1_out = p1_out.strip().encode()
     p2 = subprocess.Popen(
         ['grep', mlTag], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output = p2.communicate(input=p1_out)[0].decode().strip()
+    print(output)
     tokenizedOutput = output.split('\n')
-    ret = {'dup': -1, 'eff': -1, 'seeds': -1, 'tSeeds': -1}
+    ret = {'dup': -1, 'eff': -1, 'fake':-1}
     for word in tokenizedOutput:
         if (word.find(dupTag) != -1):
             ret['dup'] = word[len(dupTag):]
         if (word.find(effTag) != -1):
             ret['eff'] = (word[len(effTag):])
-        if (word.find(seedsTag) != -1):
-            ret['seeds'] = (word[len(seedsTag):])
-        if (word.find(truthTag) != -1):
-            ret['tSeeds'] = (word[len(truthTag):])
+        if (word.find(fakeTag) != -1):
+            ret['fake'] = (word[len(fakeTag):])
+        #if (word.find(truthTag) != -1):
+        #    ret['tSeeds'] = (word[len(truthTag):])
     return ret
 
 
@@ -130,7 +163,8 @@ creator.create("Individual", array.array, typecode="d",
 def initPopulation(pcls, ind_init, filename):
     with open(filename, "r") as pop_file:
         contents = json.load(pop_file)
-    pop = pcls(ind_init(contents[0]) for i in range(NPOP))
+    print(contents)
+    pop = pcls(ind_init(contents) for i in range(NPOP))
     # for ind in pop:
     #     ind.strategy = scls(random.uniform(smin, smax) for _ in range(size))
     return pop
@@ -150,14 +184,16 @@ def evaluate(individual):
     names, params = createNamesAndParams(individual)
     arg = paramsToInput(params, names)
     r = executeAlg(arg)
-    dup, eff, seeds, trueSeeds = r['dup'], r['eff'], r['seeds'], r['tSeeds']
+    dup, eff, fake = float(r['dup']), float(r['eff']), float(r['fake'])
     # MAX_SEEDS = 20000
     # seedsScore = 10 * float(seeds) / MAX_SEEDS
+    '''
     nSeeds, nTrueSeeds, nDup = float(seeds), float(trueSeeds), float(dup)
     fakeRate = 100 * (nSeeds - nTrueSeeds) / nSeeds
     duplicateRate = 100 * nDup / nTrueSeeds
     effScore = (1 / (1 - (float(eff) / 100)))
-    return float(eff), fakeRate, duplicateRate
+    '''
+    return eff, fake, dup
 
 # Forces individual to stay within bounds after an update
 def checkBounds(mins, maxs):
@@ -321,8 +357,10 @@ def main():
     hof = tools.HallOfFame(1)
     # initialize NPOP copies of initial guess
     pop = toolbox.population_guess()
+    #print("hi")
     indPrint(pop[0])
     firstFit = toolbox.evaluate(pop[0])
+    #print("hi2")
     print(firstFit)
     for ind in pop:
         ind.fitness.values = firstFit
