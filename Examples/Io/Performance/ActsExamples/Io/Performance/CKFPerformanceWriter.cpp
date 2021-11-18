@@ -44,6 +44,13 @@ ActsExamples::CKFPerformanceWriter::CKFPerformanceWriter(
   // the output file can not be given externally since TFile accesses to the
   // same file from multiple threads are unsafe.
   // must always be opened internally
+  if (!m_cfg.outputIsML) {
+    m_outputFile = TFile::Open(m_cfg.filePath.c_str(), m_cfg.fileMode.c_str());
+    if (not m_outputFile) {
+      throw std::invalid_argument("Could not open '" + m_cfg.filePath + "'");
+    }
+  }
+  /*
   m_outputFile = TFile::Open(m_cfg.filePath.c_str(), m_cfg.fileMode.c_str());
   if (not m_outputFile) {
     throw std::invalid_argument("Could not open '" + m_cfg.filePath + "'");
@@ -51,6 +58,7 @@ ActsExamples::CKFPerformanceWriter::CKFPerformanceWriter(
   if (m_cfg.outputIsML) {
     return;
   }
+  */
 
   // initialize the plot tools
   m_effPlotTool.book(m_effPlotCache);
@@ -94,9 +102,9 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::endRun() {
   ACTS_INFO("Duplicate rate with particles (nDuplicateParticles/nTrueParticles) = " << duplicationRate_particle);
   if (m_cfg.outputIsML) {
     std::cout << m_cfg.mlTag << ","
-    << "eff" << eff_particle << ","
-    << "fake" << fakeRate << ","
-    << "dup" << duplicationRate << std::endl;
+    << "eff" << "," << eff_particle << ","
+    << "fake" << "," << fakeRate << ","
+    << "dup" << "," << duplicationRate << std::endl;
     // don't need to write to file
     return ProcessCode::SUCCESS;;
   }

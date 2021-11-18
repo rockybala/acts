@@ -41,24 +41,26 @@ import sys
 # Definitions
 # Tags to use for reading output from seeding algorithm
 mlTag = 'mlTag'
-effTag, dupTag, fakeTag = 'mlTageff', 'mlTagdup', 'mlTagfake'
+effTag, dupTag, fakeTag = 'eff', 'dup', 'fake'
 # used to be 50
-NPOP = 4 # Population size
+NPOP = 2 # Population size
 # INT_MIN, INT_MAX = 0, 5
 # FLT_MIN, FLT_MAX = 0.2, 3.0
 # Define bounds on parameters during training
-MINS = [0.1, 0.1, 0.05, 0.1, 0.8, 0.1, 0.1, 0]
-MAXS = [999, 20, 8, 10, 2, 200, 200, 10]
+MINS = [0.1, 0.1, 0.05, 0.1, 0.8, 0, 0.1]
+MAXS = [999, 20, 8, 10, 2, 10, 10]
 # Dictionary of normalization coefficients
 # because update for each parameter is drawn from the same normal distribution
-NAME_TO_FACTOR = {'maxPt': 12000, 'impactMax': 1,
-                  'deltaRMin': 5, 'sigmaScattering': 2, 'deltaRMax': 60.0, 'collisionRegionMin': -3, 'collisionRegionMax': 3, 'maxSeedsPerSpM': 1}
+# took out collision region
+# setting these to be optimal parameters
+NAME_TO_FACTOR = {'maxPt': 30000, 'impactMax': 1.1,
+                  'deltaRMin': .25, 'sigmaScattering': 4, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1,'radLengthPerSeed': 0.0023}
 NAME_TO_INDEX = {}
 for i, key in enumerate(NAME_TO_FACTOR):
     NAME_TO_INDEX[key] = i
 TournamentSize = 3 # Parameter used for selection
 # used to be 200
-NGEN = 1 # Number of generations
+NGEN = 5 # Number of generations
 CXPB, MUTPB, SIGMA, INDPB = 0.5, 0.3, 0.1, 0.2
 NAMES_DEF = []
 for oneName in NAME_TO_FACTOR:
@@ -139,10 +141,19 @@ def executeAlg(arg):
         ['grep', mlTag], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output = p2.communicate(input=p1_out)[0].decode().strip()
     print(output)
-    tokenizedOutput = output.split('\n')
+    tokenizedOutput = output.split(',')
+    print(tokenizedOutput)
+    ret = {}
+    ret['eff'] = float(tokenizedOutput[2])
+    ret['fake'] = float(tokenizedOutput[4])
+    ret['dup'] = float(tokenizedOutput[6])
+    # should do this better
+    '''
+    print(tokenizedOutput)
     ret = {'dup': -1, 'eff': -1, 'fake':-1}
     for word in tokenizedOutput:
         if (word.find(dupTag) != -1):
+            print(ret['dup'])
             ret['dup'] = word[len(dupTag):]
         if (word.find(effTag) != -1):
             ret['eff'] = (word[len(effTag):])
@@ -150,6 +161,7 @@ def executeAlg(arg):
             ret['fake'] = (word[len(fakeTag):])
         #if (word.find(truthTag) != -1):
         #    ret['tSeeds'] = (word[len(truthTag):])
+    '''
     return ret
 
 
@@ -184,7 +196,7 @@ def evaluate(individual):
     names, params = createNamesAndParams(individual)
     arg = paramsToInput(params, names)
     r = executeAlg(arg)
-    dup, eff, fake = float(r['dup']), float(r['eff']), float(r['fake'])
+    dup, eff, fake = 100*float(r['dup']), 100*float(r['eff']), 100*float(r['fake'])
     # MAX_SEEDS = 20000
     # seedsScore = 10 * float(seeds) / MAX_SEEDS
     '''
@@ -325,10 +337,13 @@ sigmaScats = []
 maxPts = []
 impactMaxs = []
 maxSeedsPerSpMs = []
-collisionRegionMaxs = []
+#collisionRegionMaxs = []
+radLengthPerSeeds = []
 deltaRMins = []
 deltaRMaxs = []
 def main():
+    {'maxPt': 30000, 'impactMax': 1.1,
+                  'deltaRMin': .25, 'sigmaScattering': 4, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1,'radLengthPerSeed': 0.0023}
     # Objects that will compile the data for population graphs
     logbook = tools.Logbook()
     stats_eff = tools.Statistics(key=lambda ind: ind.fitness.values[0])
@@ -339,16 +354,19 @@ def main():
     stats_maxSeedsPerSPM = tools.Statistics(
         key=lambda ind: ind[NAME_TO_INDEX["maxSeedsPerSpM"]])
     stats_maxPt = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["maxPt"]])
-    stats_collisionRegionMax = tools.Statistics(
-        key=lambda ind: ind[NAME_TO_INDEX["collisionRegionMax"]])
+    #stats_collisionRegionMax = tools.Statistics(
+    #    key=lambda ind: ind[NAME_TO_INDEX["collisionRegionMax"]])
     stats_impactMax = tools.Statistics(
         key=lambda ind: ind[NAME_TO_INDEX["impactMax"]])
-    stats_collisionRegionMin = tools.Statistics(
-        key=lambda ind: ind[NAME_TO_INDEX["collisionRegionMin"]])
+    #stats_collisionRegionMin = tools.Statistics(
+    #    key=lambda ind: ind[NAME_TO_INDEX["collisionRegionMin"]])
     stats_deltaRMin = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["deltaRMin"]])
     stats_deltaRMax = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["deltaRMax"]])
+    stats_radLengthPerSeed = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["radLengthPerSeed"]])
     mstats = tools.MultiStatistics(Efficiency=stats_eff, FakeRate=stats_fake, DuplicateRate=stats_dup, sigmaScattering=stats_sigmaScattering,
-                                   maxSeedsPerSpM=stats_maxSeedsPerSPM, maxPt=stats_maxPt, collisionRegionMax=stats_collisionRegionMax, collisionRegionMin=stats_collisionRegionMin, impactMax=stats_impactMax, deltaRMax=stats_deltaRMax, deltaRMin=stats_deltaRMin)
+                                   maxSeedsPerSpM=stats_maxSeedsPerSPM, maxPt=stats_maxPt, impactMax=stats_impactMax, deltaRMax=stats_deltaRMax, deltaRMin=stats_deltaRMin,
+                                   radLengthPerSeed = stats_radLengthPerSeed)
+                                   #collisionRegionMax=stats_collisionRegionMax, collisionRegionMin=stats_collisionRegionMin, impactMax=stats_impactMax, deltaRMax=stats_deltaRMax, deltaRMin=stats_deltaRMin)
     mstats.register("avg", np.mean)
     mstats.register("std", np.std)
     mstats.register("min", np.min)
@@ -421,9 +439,11 @@ def main():
             maxPts.append(goodOne[NAME_TO_INDEX['maxPt']] * NAME_TO_FACTOR["maxPt"])
             impactMaxs.append(goodOne[NAME_TO_INDEX["impactMax"]] * NAME_TO_FACTOR["impactMax"])
             maxSeedsPerSpMs.append(int(goodOne[NAME_TO_INDEX["maxSeedsPerSpM"]] * NAME_TO_FACTOR["maxSeedsPerSpM"]))
-            collisionRegionMaxs.append(goodOne[NAME_TO_INDEX["collisionRegionMax"]] * NAME_TO_FACTOR["collisionRegionMax"])
+            #collisionRegionMaxs.append(goodOne[NAME_TO_INDEX["collisionRegionMax"]] * NAME_TO_FACTOR["collisionRegionMax"])
             deltaRMaxs.append(goodOne[NAME_TO_INDEX["deltaRMax"]] * NAME_TO_FACTOR["deltaRMax"])
             deltaRMins.append(goodOne[NAME_TO_INDEX["deltaRMin"]] * NAME_TO_FACTOR["deltaRMin"])
+            radLengthPerSeeds.append(goodOne[NAME_TO_INDEX["radLengthPerSeed"]]*NAME_TO_FACTOR["radLengthPerSeed"])
+            
             bestFake = goodOne.fitness.values[1]
             fakeRateList.append(bestFake)
             bestDup = goodOne.fitness.values[2]
