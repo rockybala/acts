@@ -43,25 +43,34 @@ import sys
 mlTag = 'mlTag'
 effTag, dupTag, fakeTag = 'eff', 'dup', 'fake'
 # used to be 50
-NPOP = 2 # Population size
+NPOP = 10 # Population size
 # INT_MIN, INT_MAX = 0, 5
 # FLT_MIN, FLT_MAX = 0.2, 3.0
 # Define bounds on parameters during training
-MINS = [0.1, 0.1, 0.05, 0.1, 0.8, 0, 0.1]
-MAXS = [999, 20, 8, 10, 2, 10, 10]
+# Need to change these bounds for optimization
+#MINS = [0.1, 0.1, 0.05, 0.1, 0.8, 1.0, 0.1]
+#MAXS = [999, 20, 8, 10, 2, 10, 10]
+# doing a broader search here maybe?
+MINS = [0.1, 0.1, 0.1, 0.1, 0.1, 1, 0.1]
+MAXS = [100,100,100,100,100,100,100]
 # Dictionary of normalization coefficients
 # because update for each parameter is drawn from the same normal distribution
 # took out collision region
 # setting these to be optimal parameters
 NAME_TO_FACTOR = {'maxPt': 30000, 'impactMax': 1.1,
                   'deltaRMin': .25, 'sigmaScattering': 4, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1,'radLengthPerSeed': 0.0023}
+
+# does maxSeedsPerSpM = 0 make sense?
+#NAME_TO_FACTOR = {'maxPt': 50000, 'impactMax': 1.1,
+#                  'deltaRMin': .25, 'sigmaScattering': 10, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1,'radLengthPerSeed': 0.0023}
 NAME_TO_INDEX = {}
 for i, key in enumerate(NAME_TO_FACTOR):
     NAME_TO_INDEX[key] = i
 TournamentSize = 3 # Parameter used for selection
 # used to be 200
-NGEN = 5 # Number of generations
-CXPB, MUTPB, SIGMA, INDPB = 0.5, 0.3, 0.1, 0.2
+NGEN = 15 # Number of generations
+# SIGMA used to be 0.1
+CXPB, MUTPB, SIGMA, INDPB = 0.5, 0.3, 1, 0.2
 NAMES_DEF = []
 for oneName in NAME_TO_FACTOR:
     NAMES_DEF.append(oneName)
@@ -71,6 +80,7 @@ for oneName in NAME_TO_FACTOR:
 plotDirectory = "zEAttbar200gen" # Where to save the plots
 ttbarSampleInput = ['--input-dir', '/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/ttbar_mu200_5events']
 ttbarSampleBool = True
+bad_params = []
 
 def normalizedToActual(normalizedInd):
     newDict = {}
@@ -130,23 +140,29 @@ def paramsToInput(params, names):
 
 # Opens a subprocess that runs the CKF and retrieves output using grep
 def executeAlg(arg):
-    print(arg)
+    #print(arg)
     p2 = subprocess.Popen(
         arg, bufsize=4096, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     p1_out, p1_err = p2.communicate()
     p1_out = p1_out.decode()
-    print(p1_out)
+    #print(p1_out)
     p1_out = p1_out.strip().encode()
     p2 = subprocess.Popen(
         ['grep', mlTag], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output = p2.communicate(input=p1_out)[0].decode().strip()
-    print(output)
+    #print(output)
     tokenizedOutput = output.split(',')
-    print(tokenizedOutput)
+    #print(tokenizedOutput)
     ret = {}
-    ret['eff'] = float(tokenizedOutput[2])
-    ret['fake'] = float(tokenizedOutput[4])
-    ret['dup'] = float(tokenizedOutput[6])
+    # Check for if the CKF actually ran or not
+    #print(len(tokenizedOutput))
+    if len(tokenizedOutput) != 1:
+        ret['eff'] = float(tokenizedOutput[2])
+        ret['fake'] = float(tokenizedOutput[4])
+        ret['dup'] = float(tokenizedOutput[6])
+    if len(tokenizedOutput) == 1:
+        print("Bad input: ")
+        print(arg)
     # should do this better
     '''
     print(tokenizedOutput)
@@ -164,8 +180,9 @@ def executeAlg(arg):
     '''
     return ret
 
-
-creator.create("Fitness", base.Fitness, weights=(1.0, -1.0, -1.0))
+# weights used to be (1.0,-1.0,-1.0)
+#creator.create("Fitness", base.Fitness, weights=(1.0, -1.0, -1.0))
+creator.create("Fitness", base.Fitness, weights=(2.0, -1.0, -5.0))
 creator.create("Individual", array.array, typecode="d",
                fitness=creator.Fitness, strategy=None)
 # creator.create("Strategy", array.array, typecode="d")
@@ -175,7 +192,7 @@ creator.create("Individual", array.array, typecode="d",
 def initPopulation(pcls, ind_init, filename):
     with open(filename, "r") as pop_file:
         contents = json.load(pop_file)
-    print(contents)
+    #print(contents)
     pop = pcls(ind_init(contents) for i in range(NPOP))
     # for ind in pop:
     #     ind.strategy = scls(random.uniform(smin, smax) for _ in range(size))
@@ -196,7 +213,17 @@ def evaluate(individual):
     names, params = createNamesAndParams(individual)
     arg = paramsToInput(params, names)
     r = executeAlg(arg)
-    dup, eff, fake = 100*float(r['dup']), 100*float(r['eff']), 100*float(r['fake'])
+    if len(r) != 0:
+        dup, eff, fake = 100*float(r['dup']), 100*float(r['eff']), 100*float(r['fake'])
+    else:
+        # need to fix this but initializing to dummy parameters if CKF config breaks
+        # set better bounds on parameters to avoid doing this probably
+        # in theory these would be the worst parameters
+        # need to fix this
+        # something like if CKF returns empty just skip that individual
+        #dup, eff, fake = -100,-100,-100
+        #dup, eff, fake = 100,0,100
+        dup, eff, fake = np.nan, np.nan, np.nan
     # MAX_SEEDS = 20000
     # seedsScore = 10 * float(seeds) / MAX_SEEDS
     '''
@@ -208,6 +235,7 @@ def evaluate(individual):
     return eff, fake, dup
 
 # Forces individual to stay within bounds after an update
+# Change this to be within bounds that converge
 def checkBounds(mins, maxs):
     def decorator(func):
         def wrapper(*args, **kargs):
@@ -375,10 +403,8 @@ def main():
     hof = tools.HallOfFame(1)
     # initialize NPOP copies of initial guess
     pop = toolbox.population_guess()
-    #print("hi")
     indPrint(pop[0])
     firstFit = toolbox.evaluate(pop[0])
-    #print("hi2")
     print(firstFit)
     for ind in pop:
         ind.fitness.values = firstFit
@@ -406,12 +432,17 @@ def main():
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
         # Evaluate the individuals with an invalid fitness (the mutated individuals)
+        # need to skip NaN values here
+        for ind in offspring:
+            print(ind.fitness.wvalues)
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         print(f"Evaluating {len(invalid_ind)} individuals...")
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         toPrint = 0
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
+            #print("Fitness values")
+            #print(ind.fitness.values)
             if (toPrint < 5 and fit[0] == -1):
                 indPrint(ind) # print first 5 individuals that cause seedingalgo to break
         pop[:] = offspring

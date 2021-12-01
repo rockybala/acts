@@ -65,8 +65,8 @@ def main():
         to_plot2.Draw("SAME")
         to_plot2.SetLineColor(ROOT.kRed)
         legend = ROOT.TLegend (0.7 ,0.6 ,0.85 ,0.75)
-        legend.AddEntry(to_plot1,'Modified')
-        legend.AddEntry(to_plot2,'Original')
+        legend.AddEntry(to_plot1,'EA Test Params')
+        legend.AddEntry(to_plot2,'EA Prev Params')
         legend.SetLineWidth(0)
         legend.SetFillStyle(0)
         legend.Draw('same')
@@ -75,5 +75,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
