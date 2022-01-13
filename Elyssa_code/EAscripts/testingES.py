@@ -26,27 +26,33 @@ assert len(PT_CUTS) > 0
 assert len(PT_CUTS) <= len(PT_CUT_COLORS)
 # Define bounds on parameters during training
 MINS = [1200, 0.1, 0.25, 0.2, 50, 0, 0.001] #, 0.001, 400, 5]
-MAXS = [1234567, 20, 30, 10, 200, 4, 0.02] #, 0.003, 600, 10]
+MAXS = [1234567, 20, 30, 50, 300, 10, 0.025]
+#MAXS = [1234567, 50, 100, 100, 200, 10, 10]
+#MAXS = [1234567, 20, 30, 10, 200, 4, 0.02] #, 0.003, 600, 10]
 # Dictionary of normalization coefficients
 # because update for each parameter is drawn from the same normal distribution
 # NAME_TO_FACTOR = {'maxPt': 12000, 'impactMax': 1.0, 'deltaRMin': 5.0, 'sigmaScattering': 2.0, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1.0, 'radLengthPerSeed': 0.005}
-NAME_TO_FACTOR = OrderedDict([('maxPt', 12000), ('impactMax', 1.0), ('deltaRMin', 5.0), ('sigmaScattering', 2.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.005)])
+#NAME_TO_FACTOR = OrderedDict([('maxPt', 12000), ('impactMax', 1.0), ('deltaRMin', 5.0), ('sigmaScattering', 2.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.005)])
+NAME_TO_FACTOR = OrderedDict([('maxPt', 30000), ('impactMax', 1.1), ('deltaRMin', .25), ('sigmaScattering', 4.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.0023)])
 # NAME_TO_FACTOR = {'maxPt': 12000, 'impactMax': 1,
 #                   'deltaRMin': 5, 'sigmaScattering': 2, 'deltaRMax': 60.0, 'collisionRegionMin': -3, 'collisionRegionMax': 3, 'maxSeedsPerSpM': 1, 'radLengthPerSeed': 0.005, 'bFieldInZ': 0.002, 'minPt': 500, 'cotThetaMax': 7.40627}
 # myGuess = [12000, 1, 1, 2.25, 60, 0.95, 0.005] # good
 # myGuess = [25000, 5, 5, 0.2, 120, 0.95, 0.005] # bad
 # myGuess = [12000, 10, 1, 2.25, 60, 0.99, 0.005] # ttbar
 # myGuess = [1234, 9, 4.0, 2.0, 80, 0.9, 0.005]
-myGuess = [10000, 10, 1, 50, 200, 5, 0.005]
+# original guess
+# myGuess = [10000, 10, 1, 50, 200, 5, 0.005]
+# just trying to scale by 1
+myGuess = [30000, 1.1, .25, 4, 60, 1, .0023]
 NAME_TO_INDEX = {}
 for i, oneName in enumerate(NAME_TO_FACTOR):
     myGuess[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     MINS[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     MAXS[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     NAME_TO_INDEX[oneName] = i
-NGEN = 1 # Number of generations
-BIGK = 100000
-plotDirectory = "zzzRocky" #"zzTestingITK_k100,000_gen200" #"yES_7params_scored4_muon_gen" + str(NGEN) + "_pop50_srange0.01-0.3_eval1" # "zES_7params_scored1_muon_gen200_pop50_srange0.01-0.3_eval2" # Where to save the plots
+NGEN = 16 # Number of generations
+BIGK = 100
+plotDirectory = "EAmuongen_30events_100particles" #"zzTestingITK_k100,000_gen200" #"yES_7params_scored4_muon_gen" + str(NGEN) + "_pop50_srange0.01-0.3_eval1" # "zES_7params_scored1_muon_gen200_pop50_srange0.01-0.3_eval2" # Where to save the plots
 plotDirectory += "/"
 ttbarSampleInput = ['--input-dir', 'sim_generic_ATLASB_ttbar_e4_pu200_eta2.5/']
 ttbarSampleBool = False
@@ -58,8 +64,10 @@ NPOP = 50 # Population size
 TournamentSize = 3 # Parameter used for selection
 
 CXPB, MUTPB, SIGMA, INDPB = 0.5, 0.3, 0.1, 0.2
-SMIN_INITIAL, SMAX_INITIAL = 0.3, 0.5 # max and minimum strategy used for the first mutation (separates the initial population which has all values the same)
-smin, smax = 0.01, 0.1 # Minimum and maximum "strategies" to use for updating parameters. 
+# 0.3, 0.5
+SMIN_INITIAL, SMAX_INITIAL = .3,5 # max and minimum strategy used for the first mutation (separates the initial population which has all values the same)
+# 0.01, 0.1
+smin, smax = .1,5 # Minimum and maximum "strategies" to use for updating parameters. 
 # a strategy specifies the standard deviation of the gaussin to draw mutations
 # Each individual has a different strategy, and each parameter within an individual has a different strategy
 
@@ -100,14 +108,21 @@ def indPrint(ind):
 # Format the input for the seeding algorithm. 
 # Assumes program is in same directory as seeding algorithm
 def paramsToInput(params, names):
-    ret = ['./ActsExampleTestSeedAlgorithm',
-           '--response-file', 'config_seeding_ml']
+    ret = ['/afs/cern.ch/work/e/ehofgard/acts/build/bin/ActsExampleCKFTracksGeneric',
+           '--ckf-selection-chi2max', '15', '--bf-constant-tesla=0:0:2',
+           '--ckf-selection-nmax', '10', 
+           '--digi-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/Digitization/share/default-smearing-config-generic.json', 
+           '--geo-selection-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/TrackFinding/share/geoSelection-genericDetector.json',
+           '--output-ML','True','--input-dir=/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/muon_data_30events',
+           '--loglevel', '5'] 
+    '''
     if (ttbarSampleBool):
         ret.append(ttbarSampleInput[0])
         ret.append(ttbarSampleInput[1])
     elif (ITKSampleBool):
         ret.append(ITKSampleInput[0])
         ret.append(ITKSampleInput[1])
+    '''
     if len(params) != len(names):
         raise Exception("Length of Params must equal names in paramsToInput")
     i = 0
@@ -130,7 +145,25 @@ def executeAlg(arg):
     p2 = subprocess.Popen(
         ['grep', mlTag], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output = p2.communicate(input=p1_out)[0].decode().strip()
-    tokenizedOutput = output.split('\n')
+    tokenizedOutput = output.split(',')
+    ret = {}
+    if len(tokenizedOutput) != 1:
+        ret['eff'] = float(tokenizedOutput[2])
+        ret['fake'] = float(tokenizedOutput[4])
+        ret['dup'] = float(tokenizedOutput[6])
+    if len(tokenizedOutput) == 1:
+        print("Timeout error ")
+        print(arg)
+        print(p1_out)
+        print(p1_err)
+        return ret
+    if ret['eff'] == 0:
+        print("0 efficiency error: ")
+        print(arg)
+        print(p1_out)
+        print(p1_err)
+    '''
+    tokenizedOutput = output.split(',')
     eventCount = {'dup': 0, 'eff': 0, 'seeds': 0, 'tSeeds': 0}
     scoreTotals = {'efficiency': -1, 'fakeRate': -1, 'duplicateRate': -1}
     # loop over all events
@@ -178,6 +211,8 @@ def executeAlg(arg):
         avgScores[score] = scoreTotals[score] / nEvents
     # print(avgScores)
     return avgScores
+    '''
+    return ret
 
 
 creator.create("Fitness", base.Fitness, weights=(1.0, 1.0, -1.0, -1.0))
@@ -208,16 +243,21 @@ def evaluate(individual):
     names, params = createNamesAndParams(individual)
     arg = paramsToInput(params, names)
     r = executeAlg(arg)
-    eff, fakeRate, duplicateRate = r['efficiency'], r['fakeRate'], r['duplicateRate']
+    if len(r) != 0:
+        dup, eff, fake = 100*float(r['dup']), 100*float(r['eff']), 100*float(r['fake'])
+    else:
+        dup, eff, fake = np.nan, np.nan, np.nan
+    #eff, fakeRate, duplicateRate = r['efficiency'], r['fakeRate'], r['duplicateRate']
     # MAX_SEEDS = 20000
     # seedsScore = 10 * float(seeds) / MAX_SEEDS
     # if (nTrueSeeds == 0):
     #     return -1.0, 100.0, 100.0
-    effScore = (1 / (1 - (eff / 100)))
-    penalty = fakeRate * duplicateRate / (BIGK) # min(effScore, 200) - penalty
+    #effScore = (1 / (1 - (eff / 100)))
+    #penalty = fake * dup / (BIGK) # min(effScore, 200) - penalty
+    penalty = dup / (BIGK)
     #effWeighted = eff
     effWeighted = eff - penalty
-    return effWeighted, eff, fakeRate, duplicateRate
+    return effWeighted, eff, fake, dup
 
 # Forces individual to stay within bounds after an update
 def checkBounds(mins, maxs):
@@ -453,7 +493,8 @@ def main():
     bestFake = 100
     # Stop condition is that the efficiency is greater than 99.4, duplicate % is less than 60, and fakerate is less than 10%
     # or the number of generations reaches NGEN (100).
-    while g < NGEN and ((bestEff < 99.4) or bestDup > 60 or bestFake > 10):
+    while g < NGEN:
+        #and ((bestEff < 99.4) or bestDup > 60 or bestFake > 10):
         g = g + 1
         print("-- Generation %i --" % g)
         # Select the next generation individuals
@@ -531,7 +572,8 @@ def main():
         print(goodOne.fitness.values)
         # record data for analyzing the population
         logbook.record(gen=g, **mstats.compile(pop))
-    # record efficiency over different pT ranges
+    # record efficiency over different pT range
+    '''
     for cutRange in pTCutData:
         cutRangeInputs = []
         for goodOne in bestIndividuals:
@@ -549,6 +591,7 @@ def main():
                 pTCutData[cutRange].append(avgScore["efficiency"])
     if not ITKSampleBool:
         plotPtRange(pTCutData)
+    '''
     # Make plots for the population
     for oneName in NAME_TO_FACTOR:
         #print("Length of data is " + str(len(logbook.chapters[oneName].select("max"))))
