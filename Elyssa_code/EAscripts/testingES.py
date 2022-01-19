@@ -50,9 +50,11 @@ for i, oneName in enumerate(NAME_TO_FACTOR):
     MINS[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     MAXS[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     NAME_TO_INDEX[oneName] = i
-NGEN = 16 # Number of generations
-BIGK = 100
-plotDirectory = "EAmuongen_30events_100particles" #"zzTestingITK_k100,000_gen200" #"yES_7params_scored4_muon_gen" + str(NGEN) + "_pop50_srange0.01-0.3_eval1" # "zES_7params_scored1_muon_gen200_pop50_srange0.01-0.3_eval2" # Where to save the plots
+# used to be 16, seeing if it will time out with 10
+NGEN = 25 # Number of generations
+# changing to 1
+BIGK = 3
+plotDirectory = "zEAttbar200pileup_1event" #"zzTestingITK_k100,000_gen200" #"yES_7params_scored4_muon_gen" + str(NGEN) + "_pop50_srange0.01-0.3_eval1" # "zES_7params_scored1_muon_gen200_pop50_srange0.01-0.3_eval2" # Where to save the plots
 plotDirectory += "/"
 ttbarSampleInput = ['--input-dir', 'sim_generic_ATLASB_ttbar_e4_pu200_eta2.5/']
 ttbarSampleBool = False
@@ -113,7 +115,7 @@ def paramsToInput(params, names):
            '--ckf-selection-nmax', '10', 
            '--digi-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/Digitization/share/default-smearing-config-generic.json', 
            '--geo-selection-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/TrackFinding/share/geoSelection-genericDetector.json',
-           '--output-ML','True','--input-dir=/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/muon_data_30events',
+           '--output-ML','True','--input-dir=/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/ttbar_mu200_1event',
            '--loglevel', '5'] 
     '''
     if (ttbarSampleBool):
@@ -254,7 +256,8 @@ def evaluate(individual):
     #     return -1.0, 100.0, 100.0
     #effScore = (1 / (1 - (eff / 100)))
     #penalty = fake * dup / (BIGK) # min(effScore, 200) - penalty
-    penalty = dup / (BIGK)
+    # whoops, need to change this back to fake * dup
+    penalty = dup / (BIGK) # - fake
     #effWeighted = eff
     effWeighted = eff - penalty
     return effWeighted, eff, fake, dup
