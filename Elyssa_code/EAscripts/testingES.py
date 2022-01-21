@@ -25,15 +25,16 @@ PT_CUT_COLORS = ["b", "r", "g", "k"]
 assert len(PT_CUTS) > 0
 assert len(PT_CUTS) <= len(PT_CUT_COLORS)
 # Define bounds on parameters during training
-MINS = [1200, 0.1, 0.25, 0.2, 50, 0, 0.001] #, 0.001, 400, 5]
-MAXS = [1234567, 20, 30, 50, 300, 10, 0.025]
+MINS = [1200, 0.1, 0.25, 0.2, 50, 0, 0.001,100,3,100]#,-300,50,-3000,1000] #, 0.001, 400, 5]
+MAXS = [1234567, 20, 30, 80, 300, 10, 0.5,1000,15,400]#,-50,300,-1000,3000]
 #MAXS = [1234567, 50, 100, 100, 200, 10, 10]
 #MAXS = [1234567, 20, 30, 10, 200, 4, 0.02] #, 0.003, 600, 10]
 # Dictionary of normalization coefficients
 # because update for each parameter is drawn from the same normal distribution
 # NAME_TO_FACTOR = {'maxPt': 12000, 'impactMax': 1.0, 'deltaRMin': 5.0, 'sigmaScattering': 2.0, 'deltaRMax': 60.0, 'maxSeedsPerSpM': 1.0, 'radLengthPerSeed': 0.005}
 #NAME_TO_FACTOR = OrderedDict([('maxPt', 12000), ('impactMax', 1.0), ('deltaRMin', 5.0), ('sigmaScattering', 2.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.005)])
-NAME_TO_FACTOR = OrderedDict([('maxPt', 30000), ('impactMax', 1.1), ('deltaRMin', .25), ('sigmaScattering', 4.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.0023)])
+# Changing these to be the old ACTS parameters
+#NAME_TO_FACTOR = OrderedDict([('maxPtScattering', 30000), ('impactMax', 1.1), ('deltaRMin', .25), ('sigmaScattering', 4.0), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.0023)])
 # NAME_TO_FACTOR = {'maxPt': 12000, 'impactMax': 1,
 #                   'deltaRMin': 5, 'sigmaScattering': 2, 'deltaRMax': 60.0, 'collisionRegionMin': -3, 'collisionRegionMax': 3, 'maxSeedsPerSpM': 1, 'radLengthPerSeed': 0.005, 'bFieldInZ': 0.002, 'minPt': 500, 'cotThetaMax': 7.40627}
 # myGuess = [12000, 1, 1, 2.25, 60, 0.95, 0.005] # good
@@ -43,7 +44,9 @@ NAME_TO_FACTOR = OrderedDict([('maxPt', 30000), ('impactMax', 1.1), ('deltaRMin'
 # original guess
 # myGuess = [10000, 10, 1, 50, 200, 5, 0.005]
 # just trying to scale by 1
-myGuess = [30000, 1.1, .25, 4, 60, 1, .0023]
+NAME_TO_FACTOR = OrderedDict([('maxPtScattering', 10000), ('impactMax', 3), ('deltaRMin', 1), ('sigmaScattering', 50), ('deltaRMax', 60.0), ('maxSeedsPerSpM', 1.0), ('radLengthPerSeed', 0.1), ('minPt', 500), ('cotThetaMax', 7.40627),
+('rMax', 200)])#,('collisionRegionMin', -250), ('collisionRegionMax', 250),('zMin',-2000),('zMax',2000)])
+myGuess = [10000, 3, 1, 50, 60, 1, .1, 500, 7.40627, 200]#, -250, 250, -2000, 2000]
 NAME_TO_INDEX = {}
 for i, oneName in enumerate(NAME_TO_FACTOR):
     myGuess[i] *= 1.0 / NAME_TO_FACTOR[oneName]
@@ -51,7 +54,7 @@ for i, oneName in enumerate(NAME_TO_FACTOR):
     MAXS[i] *= 1.0 / NAME_TO_FACTOR[oneName]
     NAME_TO_INDEX[oneName] = i
 # used to be 16, seeing if it will time out with 10
-NGEN = 25 # Number of generations
+NGEN = 16 # Number of generations
 # changing to 1
 BIGK = 3
 plotDirectory = "zEAttbar200pileup_1event" #"zzTestingITK_k100,000_gen200" #"yES_7params_scored4_muon_gen" + str(NGEN) + "_pop50_srange0.01-0.3_eval1" # "zES_7params_scored1_muon_gen200_pop50_srange0.01-0.3_eval2" # Where to save the plots
@@ -110,13 +113,14 @@ def indPrint(ind):
 # Format the input for the seeding algorithm. 
 # Assumes program is in same directory as seeding algorithm
 def paramsToInput(params, names):
+    # just adding bFieldInZ as parameter here, doesn't really make sense to adjust
     ret = ['/afs/cern.ch/work/e/ehofgard/acts/build/bin/ActsExampleCKFTracksGeneric',
            '--ckf-selection-chi2max', '15', '--bf-constant-tesla=0:0:2',
            '--ckf-selection-nmax', '10', 
            '--digi-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/Digitization/share/default-smearing-config-generic.json', 
            '--geo-selection-config-file', '/afs/cern.ch/work/e/ehofgard/acts/Examples/Algorithms/TrackFinding/share/geoSelection-genericDetector.json',
            '--output-ML','True','--input-dir=/afs/cern.ch/work/e/ehofgard/acts/data/sim_generic/ttbar_mu200_1event',
-           '--loglevel', '5'] 
+           '--loglevel', '5','--sf-bFieldInZ', '1.99724','--sf-collisionRegionMin','-250','--sf-collisionRegionMax','250','--sf-zMin','-2000','--sf-zMax','2000'] 
     '''
     if (ttbarSampleBool):
         ret.append(ttbarSampleInput[0])
@@ -469,14 +473,27 @@ def main():
         key=lambda ind: ind[NAME_TO_INDEX["sigmaScattering"]])
     stats_maxSeedsPerSPM = tools.Statistics(
         key=lambda ind: ind[NAME_TO_INDEX["maxSeedsPerSpM"]])
-    stats_maxPt = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["maxPt"]])
+    stats_maxPtScattering = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["maxPtScattering"]])
     stats_impactMax = tools.Statistics(
         key=lambda ind: ind[NAME_TO_INDEX["impactMax"]])
     stats_deltaRMin = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["deltaRMin"]])
     stats_deltaRMax = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["deltaRMax"]])
     stats_radLengthPerSeed = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["radLengthPerSeed"]])
+    stats_minPt = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["minPt"]])
+    stats_cotThetaMax = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["cotThetaMax"]])
+    stats_rMax = tools.Statistics(key=lambda ind: ind[NAME_TO_INDEX["rMax"]])
+    '''
+    stats_collisionRegionMin = tools.Statistics(key = lambda ind: ind[NAME_TO_INDEX["collisionRegionMin"]])
+    stats_collisionRegionMax = tools.Statistics(key = lambda ind: ind[NAME_TO_INDEX["collisionRegionMax"]])
+    stats_zMin = tools.Statistics(key = lambda ind: ind[NAME_TO_INDEX["zMin"]])
+    stats_zMax = tools.Statistics(key = lambda ind: ind[NAME_TO_INDEX["zMax"]])
+    '''
+
     mstats = tools.MultiStatistics(Score=stats_score, Efficiency=stats_eff, FakeRate=stats_fake, DuplicateRate=stats_dup, sigmaScattering=stats_sigmaScattering,
-                                maxSeedsPerSpM=stats_maxSeedsPerSPM, maxPt=stats_maxPt, impactMax=stats_impactMax, deltaRMax=stats_deltaRMax, deltaRMin=stats_deltaRMin, radLengthPerSeed=stats_radLengthPerSeed)
+                                maxSeedsPerSpM=stats_maxSeedsPerSPM, maxPtScattering=stats_maxPtScattering, impactMax=stats_impactMax, deltaRMax=stats_deltaRMax, deltaRMin=stats_deltaRMin, radLengthPerSeed=stats_radLengthPerSeed,
+                                minPt = stats_minPt, cotThetaMax = stats_cotThetaMax,rMax = stats_rMax)
+                                #,collisionRegionMin = stats_collisionRegionMin,
+                                #collisionRegionMax = stats_collisionRegionMax, zMin = stats_zMin, zMax = stats_zMax)
     mstats.register("avg", np.mean)
     mstats.register("std", np.std)
     mstats.register("min", np.min)
