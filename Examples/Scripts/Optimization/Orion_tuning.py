@@ -98,8 +98,8 @@ class Objective:
 
 def main():
 
-    k_dup = 7
-    k_time = 7
+    k_dup = 5
+    k_time = 5
 
     objective = Objective(k_dup, k_time)
 

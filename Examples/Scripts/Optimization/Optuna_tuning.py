@@ -122,11 +122,12 @@ class Objective:
 
 def main():
 
-    k_dup = 7
-    k_time = 7
+    k_dup = 5
+    k_time = 5
 
     objective = Objective(k_dup, k_time)
-
+    
+    '''
     start_values = {
         "maxSeedsPerSpM": 1,
         "cotThetaMax": 7.40627,
@@ -138,6 +139,7 @@ def main():
         "deltaRMax": 60.0
 }
 
+    '''
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     study_name = "test_study"
     storage_name = "sqlite:///{}.db".format(study_name)
@@ -147,8 +149,8 @@ def main():
                                 direction='maximize',
                                 load_if_exists=True)
 
-    study.enqueue_trial(start_values)
-    study.optimize(objective, n_trials=100)
+    #study.enqueue_trial(start_values)
+    study.optimize(objective, n_trials=150)
 
     print("Best Trial until now", flush=True)
     for key, value in study.best_trial.params.items():
