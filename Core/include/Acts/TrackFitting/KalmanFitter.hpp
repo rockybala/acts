@@ -127,7 +127,7 @@ struct KalmanFitterOptions {
       : geoContext(gctx),
         magFieldContext(mctx),
         calibrationContext(cctx),
-        extensions(std::move(extensions_)),
+        extensions(extensions_),
         propagatorPlainOptions(pOptions),
         referenceSurface(rSurface),
         multipleScattering(mScattering),
@@ -325,7 +325,10 @@ class KalmanFitter {
         return;
       }
 
-      ACTS_VERBOSE("KalmanFitter step");
+      ACTS_VERBOSE("KalmanFitter step at pos: "
+                   << stepper.position(state.stepping).transpose()
+                   << " dir: " << stepper.direction(state.stepping).transpose()
+                   << " momentum: " << stepper.momentum(state.stepping));
 
       // Add the measurement surface as external surface to navigator.
       // We will try to hit those surface by ignoring boundary checks.
@@ -1046,9 +1049,8 @@ class KalmanFitter {
     kalmanActor.reversedFiltering = kfOptions.reversedFiltering;
     kalmanActor.reversedFilteringCovarianceScaling =
         kfOptions.reversedFilteringCovarianceScaling;
-    kalmanActor.freeToBoundCorrection =
-        std::move(kfOptions.freeToBoundCorrection);
-    kalmanActor.extensions = std::move(kfOptions.extensions);
+    kalmanActor.freeToBoundCorrection = kfOptions.freeToBoundCorrection;
+    kalmanActor.extensions = kfOptions.extensions;
 
     typename propagator_t::template action_list_t_result_t<
         CurvilinearTrackParameters, Actors>
@@ -1158,7 +1160,7 @@ class KalmanFitter {
     kalmanActor.reversedFiltering = kfOptions.reversedFiltering;
     kalmanActor.reversedFilteringCovarianceScaling =
         kfOptions.reversedFilteringCovarianceScaling;
-    kalmanActor.extensions = std::move(kfOptions.extensions);
+    kalmanActor.extensions = kfOptions.extensions;
 
     // Set the surface sequence
     auto& dInitializer =

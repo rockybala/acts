@@ -23,6 +23,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #define ACTS_CHECK_BIT(value, mask) ((value & mask) == mask)
@@ -355,6 +356,22 @@ std::vector<const T*> unpack_shared_vector(
   return rawPtrs;
 }
 
+/// Helper function to unpack a vector of @c shared_ptr into a vector of raw
+/// pointers
+/// @tparam T the stored type
+/// @param items The vector of @c shared_ptr
+/// @return The unpacked vector
+template <typename T>
+std::vector<const T*> unpack_shared_const_vector(
+    const std::vector<std::shared_ptr<T>>& items) {
+  std::vector<const T*> rawPtrs;
+  rawPtrs.reserve(items.size());
+  for (const std::shared_ptr<T>& item : items) {
+    rawPtrs.push_back(item.get());
+  }
+  return rawPtrs;
+}
+
 /// @brief Dispatch a call based on a runtime value on a function taking the
 /// value at compile time.
 ///
@@ -381,6 +398,28 @@ auto template_switch(size_t v, Args&&... args) {
   if constexpr (N < NMAX) {
     return template_switch<Callable, N + 1, NMAX>(v,
                                                   std::forward<Args>(args)...);
+  }
+  std::cerr << "template_switch<Fn, " << N << ", " << NMAX << ">(v=" << v
+            << ") is not valid (v > NMAX)" << std::endl;
+  std::abort();
+}
+
+/// Alternative version of @c template_switch which accepts a generic
+/// lambda and communicates the dimension via an integral constant type
+/// @tparam N Value from which to start the dispatch chain, i.e. 0 in most cases
+/// @tparam NMAX Maximum value up to which to attempt a dispatch
+/// @param v The runtime value to dispatch on
+/// @param func The lambda to invoke
+/// @param args Additional arguments passed to @p func
+template <size_t N, size_t NMAX, typename Lambda, typename... Args>
+auto template_switch_lambda(size_t v, Lambda&& func, Args&&... args) {
+  if (v == N) {
+    return func(std::integral_constant<size_t, N>{},
+                std::forward<Args>(args)...);
+  }
+  if constexpr (N < NMAX) {
+    return template_switch_lambda<N + 1, NMAX>(v, func,
+                                               std::forward<Args>(args)...);
   }
   std::cerr << "template_switch<Fn, " << N << ", " << NMAX << ">(v=" << v
             << ") is not valid (v > NMAX)" << std::endl;

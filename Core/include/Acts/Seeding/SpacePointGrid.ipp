@@ -17,7 +17,7 @@ Acts::SpacePointGridCreator::createGrid(
   Acts::SpacePointGridConfig config = _config.toInternalUnits();
   using AxisScalar = Acts::Vector3::Scalar;
 
-  int phiBins;
+  int phiBins = 0;
   // for no magnetic field, create 100 phi-bins
   if (config.bFieldInZ == 0) {
     phiBins = 100;
@@ -102,7 +102,8 @@ Acts::SpacePointGridCreator::createGrid(
         std::max(1, (int)std::floor((config.zMax - config.zMin) / zBinSize));
 
     for (int bin = 0; bin <= zBins; bin++) {
-      AxisScalar edge = config.zMin + bin * zBinSize;
+      AxisScalar edge =
+          config.zMin + bin * ((config.zMax - config.zMin) / (float)zBins);
       zValues.push_back(edge);
     }
 

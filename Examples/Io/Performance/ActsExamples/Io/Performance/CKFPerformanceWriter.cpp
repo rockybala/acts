@@ -145,22 +145,13 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
   std::vector<float> inputFeatures(3);
 
   // Loop over all trajectories
-  for (size_t itraj = 0; itraj < trajectories.size(); ++itraj) {
-    const auto& traj = trajectories[itraj];
-
-    if (traj.empty()) {
-      ACTS_WARNING("Empty trajectories object " << itraj);
-      continue;
-    }
-
+  for (std::size_t iTraj = 0; iTraj < trajectories.size(); ++iTraj) {
+    const auto& traj = trajectories[iTraj];
     const auto& mj = traj.multiTrajectory();
-    const auto& trackTips = traj.tips();
-
-    // Loop over all trajectories in a multiTrajectory
-    for (auto trackTip : trackTips) {
-      // Collect the trajectory summary info
+    for (auto trackTip : traj.tips()) {
       auto trajState =
           Acts::MultiTrajectoryHelpers::trajectoryState(mj, trackTip);
+
       // Reco track selection
       //@TODO: add interface for applying others cuts on reco tracks:
       // -> pT, d0, z0, detector-specific hits/holes number cut
@@ -228,16 +219,17 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
         // predict if current trajectory is 'duplicate'
         bool isDuplicated = m_cfg.duplicatedPredictor(inputFeatures);
         // Add to number of duplicated particles
-        if (isDuplicated)
+        if (isDuplicated) {
           m_nTotalDuplicateTracks++;
+        }
         // Fill the duplication rate
         m_duplicationPlotTool.fill(m_duplicationPlotCache, fittedParameters,
                                    isDuplicated);
       }
       // Counting number of total trajectories
       m_nTotalTracks++;
-    }  // end all trajectories in a multiTrajectory
-  }    // end all multiTrajectories
+    }
+  }
 
   // Use truth-based classification for duplication rate plots
   if (!m_cfg.duplicatedPredictor) {
@@ -256,8 +248,9 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
         // 'real' track; others are as 'duplicated'
         bool isDuplicated = (itrack != 0);
         // the track is associated to the same particle
-        if (isDuplicated)
+        if (isDuplicated) {
           m_nTotalDuplicateTracks++;
+        }
         // Fill the duplication rate
         m_duplicationPlotTool.fill(m_duplicationPlotCache, fittedParameters,
                                    isDuplicated);
@@ -283,8 +276,9 @@ ActsExamples::ProcessCode ActsExamples::CKFPerformanceWriter::writeT(
       m_nTotalMatchedParticles += 1;
       // Check if the particle has more than one matched track for the duplicate
       // rate
-      if (nMatchedTracks > 1)
+      if (nMatchedTracks > 1) {
         m_nTotalDuplicateParticles += 1;
+      }
       isReconstructed = true;
     }
     // Fill efficiency plots
