@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+#sys.path.insert(0,'/afs/cern.ch/work/r/rgarg/public/ParOpt_PyEnv/lib/python3.9/site-packages/')
 
 import sys
 import os
@@ -40,7 +41,7 @@ from optuna.visualization import plot_param_importances
 from optuna.visualization import plot_slice
 
 srcDir = Path(__file__).resolve().parent
-
+InDir = "/afs/cern.ch/work/r/rgarg/public/ACTS-Project/ParameterOptimization/TrainData/gen/ttbarPythia_mu140_n100/"
 
 def run_ckf(params, names, outDir):
 
@@ -49,7 +50,8 @@ def run_ckf(params, names, outDir):
 
     ckf_script = srcDir / "ckf.py"
     nevts = "--nEvents=1"
-    indir = "--indir=" + str(srcDir)
+    #indir = "--indir=" + str(srcDir)
+    indir = "--indir=" + str(InDir)
     outdir = "--output=" + str(outDir)
 
     ret = ["python"]
@@ -136,6 +138,10 @@ class Objective:
         self.res["runtime"].append(time_ckf + time_seeding)
 
         efficiency = self.res["eff"][-1]
+        #penalty = (
+        #    self.res["fakerate"][-1]
+        #    + self.res["duplicaterate"][-1] / self.k_dup
+        #)
         penalty = (
             self.res["fakerate"][-1]
             + self.res["duplicaterate"][-1] / self.k_dup
@@ -147,8 +153,8 @@ class Objective:
 
 def main():
 
-    k_dup = 5
-    k_time = 5
+    k_dup = 10
+    k_time = 10
 
     # Initializing the objective (score) function
     objective = Objective(k_dup, k_time)
@@ -181,7 +187,7 @@ def main():
 
     # study.enqueue_trial(start_values)
     # Start Optimization
-    study.optimize(objective, n_trials=3)
+    study.optimize(objective, n_trials=200)
 
     # Printout the best trial values
     print("Best Trial until now", flush=True)

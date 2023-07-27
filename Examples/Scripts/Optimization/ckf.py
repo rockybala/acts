@@ -11,6 +11,8 @@ from acts.examples import Sequencer, GenericDetector, RootParticleReader
 import acts
 
 from acts import UnitConstants as u
+from common import getOpenDataDetectorDirectory
+from acts.examples.odd import getOpenDataDetector
 
 
 def getArgumentParser():
@@ -38,7 +40,7 @@ def getArgumentParser():
         dest="sf_maxSeedsPerSpM",
         help="Number of compatible seeds considered for middle seed",
         type=int,
-        default=1,
+        default=5,
     )
     parser.add_argument(
         "--sf_cotThetaMax",
@@ -59,14 +61,14 @@ def getArgumentParser():
         dest="sf_radLengthPerSeed",
         help="Average Radiation Length",
         type=float,
-        default=0.1,
+        default=0.05,
     )
     parser.add_argument(
         "--sf_impactMax",
         dest="sf_impactMax",
         help="max impact parameter in mm",
         type=float,
-        default=3.0,
+        default=20.0,
     )
     parser.add_argument(
         "--sf_maxPtScattering",
@@ -80,14 +82,14 @@ def getArgumentParser():
         dest="sf_deltaRMin",
         help="minimum value for deltaR separation in mm",
         type=float,
-        default=1.0,
+        default=5.0,
     )
     parser.add_argument(
         "--sf_deltaRMax",
         dest="sf_deltaRMax",
         help="maximum value for deltaR separation in mm",
         type=float,
-        default=60.0,
+        default=270.0,
     )
 
     return parser
@@ -106,28 +108,34 @@ def runCKFTracks(
     outputCsv=True,
     inputParticlePath: Optional[Path] = None,
     s=None,
-    MaxSeedsPerSpM=1,
+    MaxSeedsPerSpM=5,
     CotThetaMax=7.40627,
     SigmaScattering=5,
-    RadLengthPerSeed=0.1,
-    ImpactMax=3.0,
+    RadLengthPerSeed=0.05,
+    ImpactMax=20.0,
     MaxPtScattering=10.0,
-    DeltaRMin=1.0,
-    DeltaRMax=60.0,
+    DeltaRMin=5.0,
+    DeltaRMax=270.0,
 ):
 
     from acts.examples.simulation import (
         addParticleGun,
+        MomentumConfig,
         EtaConfig,
         PhiConfig,
         ParticleConfig,
         addFatras,
+        addPythia8,
+        ParticleSelectorConfig,
         addDigitization,
     )
 
     from acts.examples.reconstruction import (
         addSeeding,
         TruthSeedRanges,
+        TrackSelectorRanges,
+        addAmbiguityResolution,
+        AmbiguityResolutionConfig,
         ParticleSmearingSigmas,
         SeedFinderConfigArg,
         SeedFinderOptionsArg,
@@ -139,7 +147,7 @@ def runCKFTracks(
 
     s = s or acts.examples.Sequencer(
         events=int(NumEvents),
-        numThreads=-1,
+        numThreads=1,
         logLevel=acts.logging.INFO,
         outputDir=outputDir,
     )
@@ -175,6 +183,10 @@ def runCKFTracks(
         s,
         trackingGeometry,
         field,
+        ParticleSelectorConfig(
+            eta=(-3.0, 3.0), pt=(150 * u.MeV, None), removeNeutral=True
+        ) if inputParticlePath
+        else ParticleSelectorConfig(),
         rnd=rnd,
     )
 
@@ -221,7 +233,13 @@ def runCKFTracks(
         s,
         trackingGeometry,
         field,
-        CKFPerformanceConfig(ptMin=400.0 * u.MeV, nMeasurementsMin=6),
+        CKFPerformanceConfig(ptMin=1.0 * u.GeV, nMeasurementsMin=6),
+        TrackSelectorRanges(
+            pt=(1.0 * u.GeV, None),
+            absEta=(None, 3.0),
+            loc0=(-4.0 * u.mm, 4.0 * u.mm),
+            removeNeutral=True,
+        ),
         outputDirRoot=outputDir,
         outputDirCsv=outputDir / "csv" if outputCsv else None,
     )
@@ -235,13 +253,19 @@ if "__main__" == __name__:
     Inputdir = options.indir
     Outputdir = options.outdir
 
-    srcdir = Path(__file__).resolve().parent.parent.parent.parent
+    geoDir = getOpenDataDetectorDirectory()
+    oddMaterialMap = geoDir / "data/odd-material-maps.root"
+    oddDigiConfig = geoDir / "config/odd-digi-smearing-config.json"
+    oddSeedingSel = geoDir / "config/odd-seeding-config.json"
+    oddMaterialDeco = acts.IMaterialDecorator.fromFile(oddMaterialMap)
 
-    detector, trackingGeometry, decorators = GenericDetector.create()
+    detector, trackingGeometry, decorators = getOpenDataDetector(
+        geoDir, mdecorator=oddMaterialDeco
+    )
 
     field = acts.ConstantBField(acts.Vector3(0, 0, 2 * u.T))
 
-    inputParticlePath = Path(Inputdir) / "pythia8_particles.root"
+    inputParticlePath = Path(Inputdir) / "particles.root"
     if not inputParticlePath.exists():
         inputParticlePath = None
 
@@ -249,10 +273,8 @@ if "__main__" == __name__:
         trackingGeometry,
         decorators,
         field=field,
-        geometrySelection=srcdir
-        / "Examples/Algorithms/TrackFinding/share/geoSelection-genericDetector.json",
-        digiConfigFile=srcdir
-        / "Examples/Algorithms/Digitization/share/default-smearing-config-generic.json",
+        geometrySelection=oddSeedingSel,
+        digiConfigFile=oddDigiConfig,
         outputCsv=True,
         truthSmearedSeeded=False,
         truthEstimatedSeeded=False,

@@ -3,7 +3,7 @@ import sys
 
 import sys
 import os
-import yaml
+#import yaml
 import pprint
 import time
 import datetime
@@ -33,7 +33,7 @@ from pathlib import Path
 from orion.client import build_experiment
 
 srcDir = Path(__file__).resolve().parent
-
+InDir = "/afs/cern.ch/work/r/rgarg/public/ACTS-Project/ParameterOptimization/TrainData/gen/ttbarPythia_mu140_n100/"
 
 def run_ckf(params, names, outDir):
 
@@ -42,7 +42,8 @@ def run_ckf(params, names, outDir):
 
     ckf_script = srcDir / "ckf.py"
     nevts = "--nEvents=1"
-    indir = "--indir=" + str(srcDir)
+    #indir = "--indir=" + str(srcDir)
+    indir = "--indir=" + str(InDir)
     outdir = "--output=" + str(outDir)
 
     ret = ["python"]
@@ -135,8 +136,12 @@ class Objective:
         penalty = (
             self.res["fakerate"][-1]
             + self.res["duplicaterate"][-1] / self.k_dup
-            + self.res["runtime"][-1] / self.k_time
         )
+        #penalty = (
+        #    self.res["fakerate"][-1]
+        #    + self.res["duplicaterate"][-1] / self.k_dup
+        #    + self.res["runtime"][-1] / self.k_time
+        #)
 
         return [
             {"name": "objective", "type": "objective", "value": -(efficiency - penalty)}
