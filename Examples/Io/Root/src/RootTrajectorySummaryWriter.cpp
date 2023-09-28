@@ -360,8 +360,8 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
           const auto& covariance = *boundParam.covariance();
 	  for (unsigned int i = 0; i < Acts::eBoundSize; ++i) {
 	    for (unsigned int j = 0; j < Acts::eBoundSize; j++) {
-	      std::cout << "Cov[" << i << "][" << j << "] = " << covariance(i,j) << std::endl;
-	      error[i][j] = std::sqrt(covariance(i, j));
+	      //std::cout << "Cov[" << i << "][" << j << "] = " << covariance(i,j) << std::endl;
+	      error[i][j] = covariance(i, j);
 	      std::cout << "error[" << i << "][" << j << "] = " << error[i][j] << std::endl;
 	    }
           }
