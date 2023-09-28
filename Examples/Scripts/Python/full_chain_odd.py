@@ -202,7 +202,7 @@ else:
 addVertexFitting(
     s,
     field,
-    vertexFinder=VertexFinder.Iterative,
+    vertexFinder=VertexFinder.AMVF,
     outputDirRoot=outputDir,
 )
 

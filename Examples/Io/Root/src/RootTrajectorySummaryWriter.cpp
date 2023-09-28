@@ -125,6 +125,15 @@ ActsExamples::RootTrajectorySummaryWriter::RootTrajectorySummaryWriter(
     m_outputTree->Branch("err_eTHETA_fit", &m_err_eTHETA_fit);
     m_outputTree->Branch("err_eQOP_fit", &m_err_eQOP_fit);
     m_outputTree->Branch("err_eT_fit", &m_err_eT_fit);
+
+    // non-diagonal error matrix elements
+    m_outputTree->Branch("err_eLOC0LOC1_fit", &m_err_eLOC0LOC1_fit);
+    m_outputTree->Branch("err_eLOC0PHI_fit", &m_err_eLOC0PHI_fit); 
+    m_outputTree->Branch("err_eLOC0THETA_fit", &m_err_eLOC0THETA_fit); 
+    m_outputTree->Branch("err_eLOC1PHI_fit", &m_err_eLOC1PHI_fit);  
+    m_outputTree->Branch("err_eLOC1THETA_fit", &m_err_eLOC1THETA_fit); 
+    m_outputTree->Branch("err_eTHETAPHI_fit", &m_err_eTHETAPHI_fit);
+
     m_outputTree->Branch("res_eLOC0_fit", &m_res_eLOC0_fit);
     m_outputTree->Branch("res_eLOC1_fit", &m_res_eLOC1_fit);
     m_outputTree->Branch("res_ePHI_fit", &m_res_ePHI_fit);
@@ -332,8 +341,10 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
       // Initialize the fitted track parameters info
       std::array<float, Acts::eBoundSize> param = {
           NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat};
-      std::array<float, Acts::eBoundSize> error = {
-          NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat};
+      std::vector<std::vector<float>> error(Acts::eBoundSize, std::vector<float>(Acts::eBoundSize, 0.0));
+
+      //std::array<float, Acts::eBoundSize> error = {
+      //NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat, NaNfloat};
       bool hasFittedParams = false;
       bool hasFittedCov = false;
       if (traj.hasTrackParameters(trackTip)) {
@@ -347,8 +358,12 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
         if (boundParam.covariance().has_value()) {
           hasFittedCov = true;
           const auto& covariance = *boundParam.covariance();
-          for (unsigned int i = 0; i < Acts::eBoundSize; ++i) {
-            error[i] = std::sqrt(covariance(i, i));
+	  for (unsigned int i = 0; i < Acts::eBoundSize; ++i) {
+	    for (unsigned int j = 0; j < Acts::eBoundSize; j++) {
+	      std::cout << "Cov[" << i << "][" << j << "] = " << covariance(i,j) << std::endl;
+	      error[i][j] = std::sqrt(covariance(i, j));
+	      std::cout << "error[" << i << "][" << j << "] = " << error[i][j] << std::endl;
+	    }
           }
         }
       }
@@ -368,7 +383,7 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
 
         if (hasFittedCov) {
           for (unsigned int i = 0; i < Acts::eBoundSize; ++i) {
-            pull[i] = res[i] / error[i];  // MARK: fpeMask(FLTINV, 1, #2284)
+            pull[i] = res[i] / error[i][i];  // MARK: fpeMask(FLTINV, 1, #2284)
           }
         }
       }
@@ -389,12 +404,19 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
       m_res_eQOP_fit.push_back(res[Acts::eBoundQOverP]);
       m_res_eT_fit.push_back(res[Acts::eBoundTime]);
 
-      m_err_eLOC0_fit.push_back(error[Acts::eBoundLoc0]);
-      m_err_eLOC1_fit.push_back(error[Acts::eBoundLoc1]);
-      m_err_ePHI_fit.push_back(error[Acts::eBoundPhi]);
-      m_err_eTHETA_fit.push_back(error[Acts::eBoundTheta]);
-      m_err_eQOP_fit.push_back(error[Acts::eBoundQOverP]);
-      m_err_eT_fit.push_back(error[Acts::eBoundTime]);
+      m_err_eLOC0_fit.push_back(error[Acts::eBoundLoc0][Acts::eBoundLoc0]);
+      m_err_eLOC1_fit.push_back(error[Acts::eBoundLoc1][Acts::eBoundLoc1]);
+      m_err_ePHI_fit.push_back(error[Acts::eBoundPhi][Acts::eBoundPhi]);
+      m_err_eTHETA_fit.push_back(error[Acts::eBoundTheta][Acts::eBoundTheta]);
+      m_err_eQOP_fit.push_back(error[Acts::eBoundQOverP][Acts::eBoundQOverP]);
+      m_err_eT_fit.push_back(error[Acts::eBoundTime][Acts::eBoundTime]);
+      // non-diagonal error matrix elements
+      m_err_eLOC0LOC1_fit.push_back(error[Acts::eBoundLoc0][Acts::eBoundLoc1]);
+      m_err_eLOC0PHI_fit.push_back(error[Acts::eBoundLoc0][Acts::eBoundPhi]);
+      m_err_eLOC0THETA_fit.push_back(error[Acts::eBoundLoc0][Acts::eBoundTheta]);
+      m_err_eLOC1PHI_fit.push_back(error[Acts::eBoundLoc1][Acts::eBoundPhi]);
+      m_err_eLOC1THETA_fit.push_back(error[Acts::eBoundLoc1][Acts::eBoundTheta]);
+      m_err_eTHETAPHI_fit.push_back(error[Acts::eBoundTheta][Acts::eBoundPhi]);  
 
       m_pull_eLOC0_fit.push_back(pull[Acts::eBoundLoc0]);
       m_pull_eLOC1_fit.push_back(pull[Acts::eBoundLoc1]);
@@ -457,6 +479,15 @@ ActsExamples::ProcessCode ActsExamples::RootTrajectorySummaryWriter::writeT(
   m_err_eTHETA_fit.clear();
   m_err_eQOP_fit.clear();
   m_err_eT_fit.clear();
+
+  // non-diagonal elements
+  m_err_eLOC0LOC1_fit.clear();
+  m_err_eLOC0PHI_fit.clear();
+  m_err_eLOC0THETA_fit.clear();
+  m_err_eLOC1PHI_fit.clear();
+  m_err_eLOC1THETA_fit.clear();
+  m_err_eTHETAPHI_fit.clear();
+
   m_res_eLOC0_fit.clear();
   m_res_eLOC1_fit.clear();
   m_res_ePHI_fit.clear();
